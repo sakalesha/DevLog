@@ -1,0 +1,7 @@
+{
+  "name": "DevLog - Developer Learning Journal",
+  "description": "A production-grade personal learning journal and portfolio platform for developers to track daily progress across DSA, System Design, and full-stack domains.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
