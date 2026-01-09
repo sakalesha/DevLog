@@ -1,15 +1,29 @@
 
-export type Category = 
-  | 'DSA' 
-  | 'Java' 
-  | 'JavaScript' 
-  | 'React' 
-  | 'Backend' 
-  | 'Frontend' 
-  | 'Database' 
-  | 'System Design' 
-  | 'AI/ML' 
+export type Category =
+  | 'DSA'
+  | 'Java'
+  | 'JavaScript'
+  | 'React'
+  | 'Backend'
+  | 'Frontend'
+  | 'Database'
+  | 'System Design'
+  | 'AI/ML'
   | 'Other';
+
+export interface Challenge {
+  _id: string;
+  userId: string;
+  name: string;
+  category: Category;
+  description: string;
+  duration: number; // in days
+  startDate: string;
+  status: 'active' | 'completed' | 'paused';
+  createdAt: string;
+  updatedAt: string;
+}
+
 
 export interface TimeSpent {
   amount: number;
@@ -26,12 +40,15 @@ export interface LearningEntry {
   keyTakeaway: string;
   doubts?: string;
   timeSpent: TimeSpent;
+  challengeId: string;
+  dayNumber: number;
   tags: string[];
   status: 'draft' | 'published' | 'archived';
   views: number;
   createdAt: string;
   updatedAt: string;
 }
+
 
 export interface UserStats {
   currentStreak: number;

@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, BookOpen, PlusCircle, User, LogOut, Code } from 'lucide-react';
+import { LayoutDashboard, BookOpen, PlusCircle, User, LogOut, Code, Target } from 'lucide-react';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -12,7 +12,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
 
   const navItems = [
     { label: 'Dashboard', icon: <LayoutDashboard className="w-5 h-5" />, path: '/' },
-    { label: 'Entries', icon: <BookOpen className="w-5 h-5" />, path: '/entries' },
+    { label: 'Challenges', icon: <Target className="w-5 h-5" />, path: '/challenges' },
     { label: 'New Log', icon: <PlusCircle className="w-5 h-5" />, path: '/entry/new' },
   ];
 
@@ -32,11 +32,10 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
             <Link
               key={item.path}
               to={item.path}
-              className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
-                location.pathname === item.path
+              className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${location.pathname === item.path
                   ? 'bg-blue-50 text-blue-600'
                   : 'text-gray-600 hover:bg-gray-100'
-              }`}
+                }`}
             >
               {item.icon}
               {item.label}
