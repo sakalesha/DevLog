@@ -5,7 +5,7 @@ export interface IChallenge extends Document {
     description: string;
     startDate: Date;
     duration: number; // in days
-    category: 'Frontend' | 'Backend' | 'Fullstack' | 'DevOps' | 'DSA' | 'System Design' | 'Cloud' | 'Other';
+    category: 'Frontend' | 'Backend' | 'Fullstack' | 'DevOps' | 'DSA' | 'System Design' | 'Cloud' | 'Other' | 'Java' | 'JavaScript' | 'React' | 'Database' | 'AI/ML';
     status: 'active' | 'completed' | 'abandoned';
     userId: string; // For now simplified, later logic reference to User model
     createdAt: Date;
@@ -21,7 +21,7 @@ const ChallengeSchema: Schema = new Schema(
         category: {
             type: String,
             required: true,
-            enum: ['Frontend', 'Backend', 'Fullstack', 'DevOps', 'DSA', 'System Design', 'Cloud', 'Other'],
+            enum: ['Frontend', 'Backend', 'Fullstack', 'DevOps', 'DSA', 'System Design', 'Cloud', 'Other', 'Java', 'JavaScript', 'React', 'Database', 'AI/ML'],
         },
         status: {
             type: String,
