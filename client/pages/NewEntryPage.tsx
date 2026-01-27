@@ -173,8 +173,8 @@ const NewEntryPage: React.FC = () => {
       {toast && (
         <div
           className={`fixed top-6 right-6 z-[100] flex items-center gap-3 px-5 py-3 rounded-xl shadow-2xl animate-in slide-in-from-right-10 duration-300 border ${toast.type === 'success'
-              ? 'bg-green-600 text-white border-green-500'
-              : 'bg-red-600 text-white border-red-500'
+            ? 'bg-green-600 text-white border-green-500'
+            : 'bg-red-600 text-white border-red-500'
             }`}
         >
           {toast.type === 'success' ? <CheckCircle2 className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
@@ -199,8 +199,8 @@ const NewEntryPage: React.FC = () => {
               <Link
                 to={`/entry/${id}/edit`}
                 className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-colors font-semibold ${location.pathname.includes('/edit')
-                    ? 'bg-blue-50 text-blue-600 border border-blue-100'
-                    : 'text-gray-600 hover:bg-gray-100'
+                  ? 'bg-blue-50 text-blue-600 border border-blue-100'
+                  : 'text-gray-600 hover:bg-gray-100'
                   }`}
               >
                 <Edit3 className="w-4 h-4" />

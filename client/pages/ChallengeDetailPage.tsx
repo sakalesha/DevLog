@@ -2,6 +2,10 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { ChevronLeft, Calendar, Clock, Plus, Target, ChevronRight, Edit3, Award, Trash2 } from 'lucide-react';
+import { Button } from '../components/ui/Button';
+import { Card } from '../components/ui/Card';
+import { Badge } from '../components/ui/Badge';
+import { ProgressBar } from '../components/ui/ProgressBar';
 import { challengeService } from '../services/challengeService';
 import { entryService } from '../services/entryService';
 import { Challenge, LearningEntry } from '../types';
@@ -51,21 +55,20 @@ const ChallengeDetailPage: React.FC = () => {
     return (
         <div className="space-y-8 pb-20">
             <div className="flex items-center justify-between">
-                <button
+                <Button
+                    variant="ghost"
                     onClick={() => navigate('/challenges')}
-                    className="flex items-center gap-2 text-gray-500 hover:text-gray-900 transition-colors font-medium"
+                    icon={ChevronLeft}
                 >
-                    <ChevronLeft className="w-4 h-4" />
                     Back to Challenges
-                </button>
+                </Button>
                 <div className="flex gap-3">
-                    <Link
-                        to={`/entry/new?challengeId=${challenge._id}`}
-                        className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-bold transition-all shadow-lg shadow-blue-200"
+                    <Button
+                        onClick={() => navigate(`/entry/new?challengeId=${challenge._id}`)}
+                        icon={Plus}
                     >
-                        <Plus className="w-4 h-4" />
                         Add Entry
-                    </Link>
+                    </Button>
                 </div>
             </div>
 
@@ -93,11 +96,8 @@ const ChallengeDetailPage: React.FC = () => {
                             <span className="text-3xl font-black text-gray-900">{progress}%</span>
                             <span className="text-sm text-gray-500 mb-1">({entries.length} / {challenge.duration} days)</span>
                         </div>
-                        <div className="h-2 bg-gray-200 rounded-full overflow-hidden mt-3">
-                            <div
-                                className="h-full bg-blue-600 rounded-full transition-all duration-1000"
-                                style={{ width: `${progress}%` }}
-                            ></div>
+                        <div className="mt-3">
+                            <ProgressBar progress={progress} />
                         </div>
                     </div>
 
@@ -117,7 +117,7 @@ const ChallengeDetailPage: React.FC = () => {
                         </div>
                         <div>
                             <span className="block text-xs font-bold text-gray-400 uppercase">Status</span>
-                            <span className="text-gray-900 font-bold capitalize">{challenge.status}</span>
+                            <Badge variant="green" size="md">{challenge.status}</Badge>
                         </div>
                     </div>
                 </div>
@@ -141,10 +141,10 @@ const ChallengeDetailPage: React.FC = () => {
                             <div key={entry._id} className="relative pl-8 before:absolute before:left-0 before:top-4 before:bottom-0 before:w-0.5 before:bg-gray-100 last:before:hidden">
                                 <div className="absolute left-[-4px] top-4 w-2.5 h-2.5 rounded-full bg-blue-600 border-2 border-white"></div>
 
-                                <div className="bg-white p-6 rounded-2xl border border-gray-100 hover:shadow-md transition-all group relative">
+                                <Card className="p-6 hover:shadow-md transition-all group relative" hover>
                                     <div className="flex items-center justify-between mb-2">
                                         <div className="flex items-center gap-3">
-                                            <span className="text-xs font-black text-blue-600 bg-blue-50 px-2 py-0.5 rounded uppercase">Day {entry.dayNumber}</span>
+                                            <Badge variant="blue" size="md">DAY {entry.dayNumber}</Badge>
                                             <span className="text-xs text-gray-400">{format(new Date(entry.date), 'MMM dd, yyyy')}</span>
                                         </div>
                                         <div className="flex items-center gap-2">
@@ -163,12 +163,12 @@ const ChallengeDetailPage: React.FC = () => {
                                             </span>
                                             <div className="flex gap-1">
                                                 {entry.tags.slice(0, 3).map(tag => (
-                                                    <span key={tag} className="bg-gray-50 text-gray-500 px-2 py-0.5 rounded-full">#{tag}</span>
+                                                    <Badge key={tag} variant="gray" size="sm">#{tag}</Badge>
                                                 ))}
                                             </div>
                                         </div>
                                     </Link>
-                                </div>
+                                </Card>
                             </div>
                         ))}
                     </div>

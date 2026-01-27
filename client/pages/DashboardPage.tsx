@@ -8,6 +8,10 @@ import { CATEGORY_ICONS } from '../constants';
 import { format } from 'date-fns';
 import { Target, Award, ChevronRight, Plus, Edit3, Flame, Clock, Calendar, CheckCircle2 } from 'lucide-react';
 import { StatCard } from '../components/common/StatCard';
+import { Button } from '../components/ui/Button';
+import { Card } from '../components/ui/Card';
+import { Badge } from '../components/ui/Badge';
+import { ProgressBar } from '../components/ui/ProgressBar';
 
 
 const DashboardPage: React.FC = () => {
@@ -53,13 +57,13 @@ const DashboardPage: React.FC = () => {
           <h1 className="text-3xl font-bold text-gray-900">Welcome back, John! 👋</h1>
           <p className="text-gray-500 mt-1">You've maintained your streak for {stats?.currentStreak} days. Keep it up!</p>
         </div>
-        <Link
-          to="/entry/new"
-          className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl font-semibold transition-all shadow-lg shadow-blue-200"
+        <Button
+          size="lg"
+          icon={Plus}
+          onClick={() => navigate('/entry/new')}
         >
-          <Plus className="w-5 h-5" />
           Start Today's Log
-        </Link>
+        </Button>
       </section>
 
       {/* Stats Grid */}
@@ -108,26 +112,27 @@ const DashboardPage: React.FC = () => {
                 <Link
                   key={challenge._id}
                   to={`/challenges/${challenge._id}`}
-                  className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all group"
                 >
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center">
-                      {CATEGORY_ICONS[challenge.category]}
+                  <Card hover className="p-6 h-full transition-all group">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center">
+                        {CATEGORY_ICONS[challenge.category]}
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-gray-900 group-hover:text-blue-600 transition-colors uppercase text-xs tracking-widest">{challenge.name}</h3>
+                        <p className="text-[10px] text-gray-400 font-bold uppercase">{challenge.category}</p>
+                      </div>
                     </div>
-                    <div>
-                      <h3 className="font-bold text-gray-900 group-hover:text-blue-600 transition-colors uppercase text-xs tracking-widest">{challenge.name}</h3>
-                      <p className="text-[10px] text-gray-400 font-bold uppercase">{challenge.category}</p>
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-gray-400">
+                        <span>Progress</span>
+                        <span>{challenge.duration} Days</span>
+                      </div>
+                      <div className="mt-2">
+                        <ProgressBar progress={progress} height="sm" />
+                      </div>
                     </div>
-                  </div>
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-gray-400">
-                      <span>Progress</span>
-                      <span>{challenge.duration} Days</span>
-                    </div>
-                    <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                      <div className="h-full bg-blue-600 rounded-full" style={{ width: `${progress}%` }}></div>
-                    </div>
-                  </div>
+                  </Card>
                 </Link>
               );
             })}
@@ -148,18 +153,17 @@ const DashboardPage: React.FC = () => {
           </div>
           <div className="space-y-3">
             {recentEntries.map((entry) => (
-              <div
+              <Card
                 key={entry._id}
-                className="block bg-white p-4 rounded-xl border border-gray-100 hover:border-blue-300 transition-all hover:shadow-sm group relative"
+                className="p-4 hover:border-blue-300 transition-all group relative"
+                hover
               >
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2 text-xs font-bold text-blue-600 uppercase tracking-wider">
                     {CATEGORY_ICONS[entry.category]}
                     {entry.category}
                     {entry.challengeId !== 'none' && (
-                      <span className="flex items-center gap-1 bg-blue-50 px-2 py-0.5 rounded text-[10px]">
-                        Day {entry.dayNumber}
-                      </span>
+                      <Badge variant="blue" size="sm">Day {entry.dayNumber}</Badge>
                     )}
                   </div>
 
@@ -179,11 +183,11 @@ const DashboardPage: React.FC = () => {
                   <p className="text-sm text-gray-500 line-clamp-2">{entry.keyTakeaway}</p>
                   <div className="mt-3 flex gap-2">
                     {entry.tags.map(tag => (
-                      <span key={tag} className="text-[10px] bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full font-medium">#{tag}</span>
+                      <Badge key={tag} variant="gray" size="sm">#{tag}</Badge>
                     ))}
                   </div>
                 </Link>
-              </div>
+              </Card>
             ))}
           </div>
         </div>

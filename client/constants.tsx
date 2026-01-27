@@ -1,13 +1,13 @@
 
 import React from 'react';
-import { 
-  Code2, 
-  Database, 
-  Cpu, 
-  Globe, 
-  BrainCircuit, 
-  Coffee, 
-  Terminal, 
+import {
+  Code2,
+  Database,
+  Cpu,
+  Globe,
+  BrainCircuit,
+  Coffee,
+  Terminal,
   Layers,
   Layout,
   HelpCircle
@@ -39,3 +39,5 @@ export const COLORS = {
   textDark: '#1F2937',
   textLight: '#F5F5F5',
 };
+
+export const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';

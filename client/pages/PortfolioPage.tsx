@@ -1,12 +1,12 @@
 
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  Github, 
-  Linkedin, 
-  Twitter, 
-  ChevronLeft, 
-  Calendar, 
+import {
+  Github,
+  Linkedin,
+  Twitter,
+  ChevronLeft,
+  Calendar,
   ExternalLink,
   Award,
   Terminal,
@@ -63,7 +63,7 @@ const PortfolioPage: React.FC = () => {
           <div className="flex-1 space-y-4">
             <h1 className="text-5xl font-extrabold text-gray-900 tracking-tight">John Doe</h1>
             <p className="text-xl text-gray-500 max-w-2xl leading-relaxed">
-              Full Stack Engineer passionate about distributed systems and React. 
+              Full Stack Engineer passionate about distributed systems and React.
               Documenting my journey to mastery, one log at a time.
             </p>
             <div className="flex flex-wrap gap-3 pt-2">
@@ -98,7 +98,7 @@ const PortfolioPage: React.FC = () => {
               {idx !== entries.length - 1 && (
                 <div className="absolute left-4 md:left-1/2 top-8 bottom-0 w-px bg-gray-200 -translate-x-1/2 hidden md:block"></div>
               )}
-              
+
               <div className={`flex flex-col md:flex-row items-start md:items-center gap-8 ${idx % 2 === 0 ? 'md:flex-row-reverse' : ''}`}>
                 <div className="flex-1 w-full">
                   <div className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm hover:shadow-xl hover:border-blue-100 transition-all group">
@@ -120,7 +120,7 @@ const PortfolioPage: React.FC = () => {
                         <span key={tag} className="px-2.5 py-1 bg-gray-50 text-gray-500 rounded-lg text-[10px] font-bold">#{tag}</span>
                       ))}
                     </div>
-                    <button 
+                    <button
                       onClick={() => navigate(`/entries/${entry._id}`)}
                       className="flex items-center gap-2 text-sm font-bold text-blue-600 hover:underline"
                     >
