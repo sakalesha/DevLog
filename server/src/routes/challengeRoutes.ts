@@ -7,7 +7,11 @@ import {
     deleteChallenge,
 } from '../controllers/challengeController';
 
+import { protect } from '../middleware/authMiddleware';
+
 const router = express.Router();
+
+router.use(protect); // Protect all routes
 
 router.route('/')
     .get(getChallenges)

@@ -3,7 +3,7 @@ import LearningEntry from '../models/LearningEntry';
 
 export const getEntries = async (req: Request, res: Response) => {
     try {
-        const entries = await LearningEntry.find().sort({ date: -1 });
+        const entries = await LearningEntry.find({ userId: (req as any).user._id }).sort({ date: -1 });
         res.json(entries);
     } catch (error: any) {
         res.status(500).json({ message: error.message });
@@ -12,7 +12,7 @@ export const getEntries = async (req: Request, res: Response) => {
 
 export const getEntryById = async (req: Request, res: Response) => {
     try {
-        const entry = await LearningEntry.findById(req.params.id);
+        const entry = await LearningEntry.findOne({ _id: req.params.id, userId: (req as any).user._id });
         if (!entry) {
             return res.status(404).json({ message: 'Entry not found' });
         }
@@ -26,7 +26,7 @@ export const createEntry = async (req: Request, res: Response) => {
     try {
         const entry = new LearningEntry({
             ...req.body,
-            userId: 'u1' // Placeholder
+            userId: (req as any).user._id
         });
         const createdEntry = await entry.save();
         res.status(201).json(createdEntry);
@@ -37,7 +37,7 @@ export const createEntry = async (req: Request, res: Response) => {
 
 export const updateEntry = async (req: Request, res: Response) => {
     try {
-        const entry = await LearningEntry.findById(req.params.id);
+        const entry = await LearningEntry.findOne({ _id: req.params.id, userId: (req as any).user._id });
         if (!entry) {
             return res.status(404).json({ message: 'Entry not found' });
         }
@@ -52,7 +52,7 @@ export const updateEntry = async (req: Request, res: Response) => {
 
 export const deleteEntry = async (req: Request, res: Response) => {
     try {
-        const entry = await LearningEntry.findById(req.params.id);
+        const entry = await LearningEntry.findOne({ _id: req.params.id, userId: (req as any).user._id });
         if (!entry) {
             return res.status(404).json({ message: 'Entry not found' });
         }
@@ -66,7 +66,7 @@ export const deleteEntry = async (req: Request, res: Response) => {
 
 export const getStats = async (req: Request, res: Response) => {
     try {
-        const entries = await LearningEntry.find({ userId: 'u1' }); // Filter by user later
+        const entries = await LearningEntry.find({ userId: (req as any).user._id });
 
         const uniqueTopics = new Set(entries.map(e => e.topic)).size;
         const totalMinutes = entries.reduce((acc, e) => {
@@ -74,7 +74,7 @@ export const getStats = async (req: Request, res: Response) => {
         }, 0);
 
         const stats = {
-            currentStreak: entries.length > 0 ? 3 : 0, // Simplified streak logic for MVP
+            currentStreak: entries.length > 0 ? 3 : 0, // Placeholder logic
             longestStreak: 7,
             totalEntriesCreated: entries.length,
             totalHoursLearned: parseFloat((totalMinutes / 60).toFixed(1)),

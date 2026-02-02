@@ -8,7 +8,11 @@ import {
     getStats,
 } from '../controllers/entryController';
 
+import { protect } from '../middleware/authMiddleware';
+
 const router = express.Router();
+
+router.use(protect); // Protect all routes
 
 router.get('/stats', getStats); // Must be before /:id to avoid conflict
 

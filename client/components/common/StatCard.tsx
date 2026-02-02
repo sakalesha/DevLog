@@ -11,22 +11,22 @@ interface StatCardProps {
 
 export const StatCard: React.FC<StatCardProps> = ({ label, value, icon, trend, color = "blue" }) => {
   const colorMap: Record<string, string> = {
-    blue: "bg-blue-50 text-blue-600",
-    green: "bg-green-50 text-green-600",
-    orange: "bg-orange-50 text-orange-600",
-    purple: "bg-purple-50 text-purple-600"
+    blue: "bg-gradient-to-br from-primary-50 to-primary-100 text-primary-600 ring-1 ring-primary-200/50",
+    green: "bg-gradient-to-br from-emerald-50 to-emerald-100 text-emerald-600 ring-1 ring-emerald-200/50",
+    orange: "bg-gradient-to-br from-amber-50 to-amber-100 text-amber-600 ring-1 ring-amber-200/50",
+    purple: "bg-gradient-to-br from-violet-50 to-violet-100 text-violet-600 ring-1 ring-violet-200/50"
   };
 
   return (
-    <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm flex items-center gap-4 transition-all hover:shadow-md">
-      <div className={`p-3 rounded-lg ${colorMap[color]}`}>
+    <div className="bg-white/60 backdrop-blur-md p-6 rounded-2xl border border-white/40 shadow-sm flex items-center gap-5 transition-all hover:shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:-translate-y-1 duration-300">
+      <div className={`p-3.5 rounded-xl shadow-inner ${colorMap[color]}`}>
         {icon}
       </div>
       <div>
-        <p className="text-sm font-medium text-gray-500">{label}</p>
-        <div className="flex items-baseline gap-2">
-          <h3 className="text-2xl font-bold text-gray-900">{value}</h3>
-          {trend && <span className="text-xs font-semibold text-green-500">{trend}</span>}
+        <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">{label}</p>
+        <div className="flex flex-col">
+          <h3 className="text-2xl font-bold text-slate-800 font-display tracking-tight">{value}</h3>
+          {trend && <span className="text-[10px] font-bold text-emerald-500 bg-emerald-50 px-1.5 py-0.5 rounded-lg w-fit mt-1">{trend}</span>}
         </div>
       </div>
     </div>

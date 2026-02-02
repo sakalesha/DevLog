@@ -29,7 +29,7 @@ interface Toast {
   type: 'success' | 'error';
 }
 
-const NewEntryPage: React.FC = () => {
+const EntryEditorPage: React.FC = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
@@ -395,4 +395,4 @@ const NewEntryPage: React.FC = () => {
   );
 };
 
-export default NewEntryPage;
+export default EntryEditorPage;

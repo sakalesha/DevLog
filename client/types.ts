@@ -61,11 +61,10 @@ export interface UserStats {
 
 export interface User {
   _id: string;
+  name: string;
   email: string;
-  firstName: string;
-  lastName: string;
   avatar?: string;
-  stats: UserStats;
+  token?: string;
 }
 
 export interface AppState {

@@ -3,7 +3,7 @@ import Challenge from '../models/Challenge';
 
 export const getChallenges = async (req: Request, res: Response) => {
     try {
-        const challenges = await Challenge.find().sort({ createdAt: -1 });
+        const challenges = await Challenge.find({ userId: (req as any).user._id }).sort({ createdAt: -1 });
         res.json(challenges);
     } catch (error: any) {
         res.status(500).json({ message: error.message });
@@ -12,7 +12,7 @@ export const getChallenges = async (req: Request, res: Response) => {
 
 export const getChallengeById = async (req: Request, res: Response) => {
     try {
-        const challenge = await Challenge.findById(req.params.id);
+        const challenge = await Challenge.findOne({ _id: req.params.id, userId: (req as any).user._id });
         if (!challenge) {
             return res.status(404).json({ message: 'Challenge not found' });
         }
@@ -26,7 +26,7 @@ export const createChallenge = async (req: Request, res: Response) => {
     try {
         const challenge = new Challenge({
             ...req.body,
-            userId: 'u1', // Placeholder logic
+            userId: (req as any).user._id,
         });
         const createdChallenge = await challenge.save();
         res.status(201).json(createdChallenge);
@@ -37,7 +37,7 @@ export const createChallenge = async (req: Request, res: Response) => {
 
 export const updateChallenge = async (req: Request, res: Response) => {
     try {
-        const challenge = await Challenge.findById(req.params.id);
+        const challenge = await Challenge.findOne({ _id: req.params.id, userId: (req as any).user._id });
         if (!challenge) {
             return res.status(404).json({ message: 'Challenge not found' });
         }
@@ -52,7 +52,7 @@ export const updateChallenge = async (req: Request, res: Response) => {
 
 export const deleteChallenge = async (req: Request, res: Response) => {
     try {
-        const challenge = await Challenge.findById(req.params.id);
+        const challenge = await Challenge.findOne({ _id: req.params.id, userId: (req as any).user._id });
         if (!challenge) {
             return res.status(404).json({ message: 'Challenge not found' });
         }

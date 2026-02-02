@@ -17,12 +17,16 @@ export const Card: React.FC<CardProps> = ({
         <div
             onClick={onClick}
             className={`
-        bg-white rounded-2xl border border-gray-100 shadow-sm 
-        ${hover ? 'hover:shadow-md hover:border-blue-300 transition-all cursor-pointer group' : ''} 
+        bg-white/90 backdrop-blur-sm rounded-2xl border border-slate-200/60 shadow-sm relative overflow-hidden
+        ${hover ? 'hover:shadow-xl hover:shadow-slate-200/50 hover:border-primary-200/50 hover:-translate-y-1 transition-all duration-300 ease-out cursor-pointer group' : ''} 
         ${className}
       `}
         >
-            {children}
+            {/* Subtle gradient overlay for depth */}
+            <div className="absolute inset-0 bg-gradient-to-b from-white/50 to-transparent pointer-events-none" />
+            <div className="relative z-10 h-full">
+                {children}
+            </div>
         </div>
     );
 };

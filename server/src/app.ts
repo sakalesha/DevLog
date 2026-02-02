@@ -3,6 +3,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import challengeRoutes from './routes/challengeRoutes';
 import entryRoutes from './routes/entryRoutes';
+import authRoutes from './routes/authRoutes';
 
 const app = express();
 
@@ -12,6 +13,7 @@ app.use(cors());
 app.use(express.json());
 
 // Routes
+app.use('/api/auth', authRoutes);
 app.use('/api/challenges', challengeRoutes);
 app.use('/api/entries', entryRoutes);
 
