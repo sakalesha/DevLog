@@ -40,4 +40,5 @@ export const COLORS = {
   textLight: '#F5F5F5',
 };
 
-export const API_URL = import.meta.env.VITE_API_URL || '/api';
+// Sanitize API_URL to remove trailing slash if present
+export const API_URL = (import.meta.env.VITE_API_URL || '/api').replace(/\/$/, '');
