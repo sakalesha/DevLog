@@ -56,9 +56,15 @@ const DashboardPage: React.FC = () => {
         <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
         <div className="absolute bottom-0 left-0 w-48 h-48 bg-primary-500/20 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2" />
 
-        <div className="relative z-10">
-          <h1 className="text-3xl md:text-4xl font-bold font-display tracking-tight">Welcome back, John! 👋</h1>
-          <p className="text-slate-300 mt-2 text-lg font-light">You've maintained your streak for <span className="font-semibold text-white">{stats?.currentStreak} days</span>. Keep building!</p>
+        <div className="relative z-10 text-center md:text-left">
+          <h1 className="text-3xl md:text-5xl font-bold font-display tracking-tight leading-tight mb-2">
+            Here’s what confused me <span className="text-blue-400">→</span><br />
+            here’s how I fixed my thinking.
+          </h1>
+          <p className="text-slate-300 mt-4 text-lg font-light max-w-2xl">
+            I run a devlog purely to document my learning with code, clarity, and honesty.
+            <span className="block mt-2 text-sm opacity-70 font-mono">Not for perfection. Just for growth.</span>
+          </p>
         </div>
         <div className="relative z-10">
           <Button
@@ -123,7 +129,7 @@ const DashboardPage: React.FC = () => {
                     <div>
                       <div className="flex items-center gap-3 mb-5">
                         <div className="w-12 h-12 bg-primary-50 text-primary-600 rounded-2xl flex items-center justify-center ring-4 ring-primary-50/50">
-                          {CATEGORY_ICONS[challenge.category]}
+                          {React.createElement(CATEGORY_ICONS[challenge.category], { className: "w-6 h-6" })}
                         </div>
                         <div>
                           <h3 className="font-bold text-slate-900 group-hover:text-primary-600 transition-colors uppercase text-xs tracking-widest">{challenge.name}</h3>
@@ -166,7 +172,7 @@ const DashboardPage: React.FC = () => {
               >
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-3">
-                    <Badge variant="blue" size="sm" icon={CATEGORY_ICONS[entry.category] as any}>
+                    <Badge variant="blue" size="sm" icon={CATEGORY_ICONS[entry.category]}>
                       {entry.category}
                     </Badge>
                     {entry.challengeId !== 'none' && (

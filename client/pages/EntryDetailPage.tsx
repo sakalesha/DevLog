@@ -93,7 +93,7 @@ const EntryDetailPage: React.FC = () => {
         <div className="p-8 md:p-12 bg-gray-50 border-b border-gray-100">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2 text-blue-600 font-bold uppercase tracking-widest text-xs">
-              {CATEGORY_ICONS[entry.category]}
+              {React.createElement(CATEGORY_ICONS[entry.category], { className: "w-3.5 h-3.5" })}
               {entry.category}
               {challenge && (
                 <span className="flex items-center gap-1.5 ml-2 border-l border-gray-300 pl-3">

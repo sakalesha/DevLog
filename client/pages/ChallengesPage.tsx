@@ -117,7 +117,7 @@ const ChallengesPage: React.FC = () => {
                                 <Card hover className="h-full flex flex-col justify-between p-0 group overflow-hidden">
                                     <div className="p-6">
                                         <div className="flex items-center justify-between mb-4">
-                                            <Badge variant="blue" icon={CATEGORY_ICONS[challenge.category] as any}>
+                                            <Badge variant="blue" icon={CATEGORY_ICONS[challenge.category]}>
                                                 {challenge.category}
                                             </Badge>
                                             <button

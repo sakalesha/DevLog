@@ -79,7 +79,7 @@ const ChallengeDetailPage: React.FC = () => {
                     </div>
                     <div className="relative z-10">
                         <div className="flex items-center gap-2 text-xs font-bold text-blue-100 uppercase tracking-widest bg-white/10 w-fit px-3 py-1 rounded-full mb-4">
-                            {CATEGORY_ICONS[challenge.category]}
+                            {React.createElement(CATEGORY_ICONS[challenge.category], { className: "w-3.5 h-3.5" })}
                             {challenge.category}
                         </div>
                         <h1 className="text-4xl font-black mb-4">{challenge.name}</h1>

@@ -53,33 +53,26 @@ const PortfolioPage: React.FC = () => {
       </nav>
 
       {/* Profile Header */}
-      <header className="max-w-5xl mx-auto px-6 py-16">
-        <div className="flex flex-col md:flex-row gap-10 items-start">
-          <div className="w-32 h-32 rounded-3xl bg-blue-600 p-1">
-            <div className="w-full h-full rounded-[22px] overflow-hidden border-4 border-white">
-              <img src="https://picsum.photos/seed/dev/200/200" alt="Avatar" className="w-full h-full object-cover" />
-            </div>
+      <header className="max-w-5xl mx-auto px-6 py-20 text-center">
+        <h1 className="text-5xl md:text-6xl font-extrabold text-gray-900 tracking-tight mb-6 bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">
+          Here’s what confused me <span className="text-blue-600">→</span> here’s how I fixed my thinking.
+        </h1>
+        <p className="text-xl md:text-2xl text-gray-500 max-w-3xl mx-auto leading-relaxed font-light">
+          I run a devlog where I document my learning with code, clarity, and honesty.
+        </p>
+
+        <div className="flex justify-center gap-3 pt-10">
+          <div className="px-4 py-2 bg-white border border-gray-200 rounded-full text-sm font-bold text-gray-700 flex items-center gap-2 shadow-sm">
+            <Award className="w-4 h-4 text-amber-500" />
+            {stats?.currentStreak} Day Streak
           </div>
-          <div className="flex-1 space-y-4">
-            <h1 className="text-5xl font-extrabold text-gray-900 tracking-tight">John Doe</h1>
-            <p className="text-xl text-gray-500 max-w-2xl leading-relaxed">
-              Full Stack Engineer passionate about distributed systems and React.
-              Documenting my journey to mastery, one log at a time.
-            </p>
-            <div className="flex flex-wrap gap-3 pt-2">
-              <div className="px-4 py-2 bg-white border border-gray-200 rounded-full text-sm font-bold text-gray-700 flex items-center gap-2 shadow-sm">
-                <Award className="w-4 h-4 text-amber-500" />
-                {stats?.currentStreak} Day Streak
-              </div>
-              <div className="px-4 py-2 bg-white border border-gray-200 rounded-full text-sm font-bold text-gray-700 flex items-center gap-2 shadow-sm">
-                <Terminal className="w-4 h-4 text-blue-500" />
-                {stats?.totalEntriesCreated} Logs Written
-              </div>
-              <div className="px-4 py-2 bg-white border border-gray-200 rounded-full text-sm font-bold text-gray-700 flex items-center gap-2 shadow-sm">
-                <Activity className="w-4 h-4 text-green-500" />
-                {stats?.totalHoursLearned}h Learning
-              </div>
-            </div>
+          <div className="px-4 py-2 bg-white border border-gray-200 rounded-full text-sm font-bold text-gray-700 flex items-center gap-2 shadow-sm">
+            <Terminal className="w-4 h-4 text-blue-500" />
+            {stats?.totalEntriesCreated} Logs Written
+          </div>
+          <div className="px-4 py-2 bg-white border border-gray-200 rounded-full text-sm font-bold text-gray-700 flex items-center gap-2 shadow-sm">
+            <Activity className="w-4 h-4 text-green-500" />
+            {stats?.totalHoursLearned}h Learning
           </div>
         </div>
       </header>
@@ -104,7 +97,7 @@ const PortfolioPage: React.FC = () => {
                   <div className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm hover:shadow-xl hover:border-blue-100 transition-all group">
                     <div className="flex items-center justify-between mb-4">
                       <div className="flex items-center gap-2 text-xs font-bold text-blue-600 uppercase tracking-widest">
-                        {CATEGORY_ICONS[entry.category]}
+                        {React.createElement(CATEGORY_ICONS[entry.category], { className: "w-3.5 h-3.5" })}
                         {entry.category}
                       </div>
                       <span className="text-xs text-gray-400 font-medium">{format(new Date(entry.date), 'MMM dd, yyyy')}</span>
@@ -144,7 +137,7 @@ const PortfolioPage: React.FC = () => {
       {/* Footer */}
       <footer className="bg-white border-t border-gray-100 py-12">
         <div className="max-w-5xl mx-auto px-6 text-center text-gray-400 text-sm font-medium">
-          &copy; 2024 DevLog - Built for consistency.
+          Built as a learning log — not to show expertise, but to build it.
         </div>
       </footer>
     </div>

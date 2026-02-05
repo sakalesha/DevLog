@@ -17,7 +17,7 @@ import {
   CheckCircle2,
   X
 } from 'lucide-react';
-import { CATEGORIES, CATEGORY_ICONS } from '../constants';
+import { CATEGORIES } from '../constants';
 import { entryService } from '../services/entryService';
 import { geminiService } from '../services/geminiService';
 import { challengeService } from '../services/challengeService';
@@ -283,6 +283,21 @@ const EntryEditorPage: React.FC = () => {
             </div>
           </div>
 
+
+          <div className="bg-blue-50/50 border border-blue-100 rounded-xl p-5 mb-6">
+            <h3 className="text-sm font-bold text-blue-900 mb-2">💡 Writing Prompt</h3>
+            <div className="flex flex-col md:flex-row gap-4 text-sm text-blue-800">
+              <div className="flex-1">
+                <span className="font-bold text-blue-600 block text-xs uppercase tracking-wider mb-1">Start with</span>
+                "What confused me today?"
+              </div>
+              <div className="hidden md:block w-px bg-blue-200"></div>
+              <div className="flex-1">
+                <span className="font-bold text-blue-600 block text-xs uppercase tracking-wider mb-1">End with</span>
+                "Here’s how I fixed my thinking."
+              </div>
+            </div>
+          </div>
 
           <div className="space-y-2">
             <label className="text-sm font-bold text-gray-700 mb-1 block">Learning Content</label>
