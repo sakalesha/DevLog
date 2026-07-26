@@ -2,14 +2,12 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import ReactQuill from 'react-quill-new';
 import {
-  Save,
   Sparkles,
   ChevronLeft,
   Loader2,
   Clock,
   Tags,
   MessageCircle,
-  CheckCircle2,
   X,
   BookOpen,
   Calendar,
@@ -17,7 +15,11 @@ import {
   FileText,
   Send,
   RotateCcw,
-  AlertCircle
+  AlertCircle,
+  Maximize2,
+  Minimize2,
+  AlignLeft,
+  Type
 } from 'lucide-react';
 import { entryService } from '../services/entryService';
 import { geminiService } from '../services/geminiService';
@@ -38,11 +40,22 @@ const quillModules = {
   toolbar: [
     [{ header: [1, 2, 3, false] }],
     ['bold', 'italic', 'underline', 'strike'],
-    [{ list: 'ordered' }, { list: 'bullet' }],
+    [{ list: 'ordered' }, { list: 'bullet' }, { indent: '-1' }, { indent: '+1' }],
     ['code-block', 'blockquote', 'link'],
+    [{ color: [] }, { background: [] }],
     ['clean'],
   ],
 };
+
+// ─── Helpers ───────────────────────────────────────────────────────────────────
+
+function countWords(html: string): number {
+  return html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().split(' ').filter(Boolean).length;
+}
+
+function countChars(html: string): number {
+  return html.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim().length;
+}
 
 // ─── Component ─────────────────────────────────────────────────────────────────
 
@@ -55,6 +68,7 @@ const EntryEditorPage: React.FC = () => {
   const { toasts, toast, dismissToast } = useToast();
 
   const [categories, setCategories] = useState<Category[]>([]);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [aiLoading, setAiLoading] = useState(false);
   const [suggLoading, setSuggLoading] = useState(false);
@@ -350,22 +364,83 @@ const EntryEditorPage: React.FC = () => {
 
         {/* Rich Text Studio */}
         <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <label className="block text-sm font-bold text-slate-700 dark:text-slate-200">
+          {/* Editor Header */}
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 flex items-center gap-1.5">
+              <AlignLeft className="w-4 h-4 text-slate-400" />
               Detailed Learning Notes & Code Snippets *
             </label>
-            <span className="text-xs text-slate-400 dark:text-slate-500">Rich text · Code blocks · Links</span>
+            <div className="flex items-center gap-3">
+              {/* Live word & char counter */}
+              {formData.content && (
+                <div className="flex items-center gap-2 text-[11px] font-mono text-slate-400 dark:text-slate-500">
+                  <Type className="w-3 h-3" />
+                  <span>{countWords(formData.content ?? '').toLocaleString()} words</span>
+                  <span className="opacity-50">·</span>
+                  <span>{countChars(formData.content ?? '').toLocaleString()} chars</span>
+                </div>
+              )}
+              {/* Fullscreen toggle */}
+              <button
+                type="button"
+                onClick={() => setIsFullscreen(f => !f)}
+                title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen editor'}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              >
+                {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+              </button>
+            </div>
           </div>
-          <div className="bg-white dark:bg-slate-850 rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-700 shadow-inner">
+
+          {/* Editor container — gets fullscreen class when active */}
+          <div className={`rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-700 shadow-inner transition-all ${
+            isFullscreen
+              ? 'quill-fullscreen fixed inset-4 z-[200] shadow-2xl rounded-2xl border'
+              : 'bg-white dark:bg-slate-850'
+          }`}>
+            {/* Fullscreen escape hint */}
+            {isFullscreen && (
+              <div className="flex items-center justify-between px-4 py-2.5 bg-slate-900 border-b border-slate-700">
+                <div className="flex items-center gap-2">
+                  <BookOpen className="w-4 h-4 text-slate-400" />
+                  <span className="text-xs font-bold text-slate-300">
+                    {formData.topic || 'Untitled Entry'} — Fullscreen Mode
+                  </span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="text-[11px] font-mono text-slate-500">
+                    {countWords(formData.content ?? '')} words · {countChars(formData.content ?? '')} chars
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setIsFullscreen(false)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 border border-slate-700 transition-colors"
+                  >
+                    <Minimize2 className="w-3.5 h-3.5" />
+                    <span>Exit Fullscreen</span>
+                  </button>
+                </div>
+              </div>
+            )}
             <ReactQuill
               theme="snow"
               value={formData.content}
               onChange={(val) => updateForm({ content: val })}
               modules={quillModules}
               placeholder="Write out your concepts, code examples, diagrams, or architectural takeaways..."
-              className="dark:text-slate-100"
+              className={`dark:text-slate-100 ${isFullscreen ? 'quill-fullscreen' : ''}`}
             />
           </div>
+
+          {/* Keyboard tip */}
+          <p className="text-[11px] text-slate-400 dark:text-slate-500 flex items-center gap-1.5">
+            <span className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 font-mono border border-slate-200 dark:border-slate-700">Ctrl+`</span>
+            <span>to insert code block ·</span>
+            <span className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 font-mono border border-slate-200 dark:border-slate-700">Ctrl+B</span>
+            <span>bold ·</span>
+            <span className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 font-mono border border-slate-200 dark:border-slate-700">Ctrl+K</span>
+            <span>link</span>
+          </p>
         </div>
 
         {/* Key Takeaway + AI Generator */}

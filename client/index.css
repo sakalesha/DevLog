@@ -26,30 +26,176 @@
   }
 }
 
-/* ─── Copy Code Button (injected into pre elements by EntryDetailPage) ──────── */
-.copy-code-btn {
-  position: absolute;
-  top: 0.6rem;
-  right: 0.6rem;
+/* ═══════════════════════════════════════════════════════════════════════════
+   RichContentViewer — Code Block Styles
+   (injected by RichContentViewer.tsx using hljs + DOM manipulation)
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Wrapper: each <pre> rendered by Quill ─────────────────────────────────── */
+.rich-content-viewer pre {
+  position: relative;
+  background: #0d1117 !important;     /* GitHub Dark surface */
+  border: 1px solid #30363d !important;
+  border-radius: 0.75rem !important;
+  overflow: hidden !important;
+  margin: 1.5rem 0 !important;
+  padding: 0 !important;
+  display: flex;
+  flex-direction: column;
+  font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace;
+}
+
+/* ── Line-numbers gutter ───────────────────────────────────────────────────── */
+.hljs-line-numbers {
+  display: flex;
+  flex-direction: column;
+  padding: 1rem 0.5rem 1rem 1rem;
+  background: #0d1117;
+  border-right: 1px solid #30363d;
+  user-select: none;
+  min-width: 2.8rem;
+  text-align: right;
+  flex-shrink: 0;
+}
+.hljs-line-numbers span {
+  display: block;
+  font-size: 0.72rem;
+  line-height: 1.7;
+  color: #484f58;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Code area ────────────────────────────────────────────────────────────── */
+.rich-content-viewer pre code.hljs,
+.rich-content-viewer pre .hljs {
+  display: block;
+  flex: 1;
+  padding: 1rem 1.25rem !important;
+  overflow-x: auto;
+  font-size: 0.875rem !important;
+  line-height: 1.7 !important;
+  background: transparent !important;
+  color: #e6edf3;
+}
+
+/* ── Top bar: language pill + copy button ─────────────────────────────────── */
+.hljs-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 1rem;
+  background: #161b22;
+  border-bottom: 1px solid #30363d;
+  user-select: none;
+}
+.hljs-lang-label {
+  font-size: 0.65rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #58a6ff;
+  font-family: ui-monospace, monospace;
+}
+.hljs-copy-btn {
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
-  padding: 0.25rem 0.6rem;
+  padding: 0.2rem 0.6rem;
   border-radius: 0.4rem;
-  font-size: 0.7rem;
+  font-size: 0.68rem;
   font-weight: 700;
-  background: rgba(255, 255, 255, 0.1);
-  color: rgba(255, 255, 255, 0.7);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: transparent;
+  color: #8b949e;
+  border: 1px solid #30363d;
   cursor: pointer;
-  transition: background 0.15s, color 0.15s;
-  z-index: 10;
-  letter-spacing: 0.02em;
-  user-select: none;
+  transition: all 0.15s;
+  font-family: ui-monospace, monospace;
 }
-.copy-code-btn:hover {
-  background: rgba(255, 255, 255, 0.2);
-  color: #fff;
+.hljs-copy-btn:hover {
+  background: rgba(88, 166, 255, 0.1);
+  border-color: #58a6ff;
+  color: #58a6ff;
+}
+.hljs-copy-btn.copied {
+  color: #3fb950;
+  border-color: #3fb950;
+  background: rgba(63, 185, 80, 0.1);
+}
+
+/* ── Code + gutter row layout ─────────────────────────────────────────────── */
+.rich-content-viewer pre {
+  flex-direction: column;
+}
+.rich-content-viewer pre > .hljs-topbar + .hljs-line-numbers,
+.rich-content-viewer pre > .hljs-topbar ~ code {
+  /* topbar is column-direction, rest fills below */
+}
+.rich-content-viewer pre > :not(.hljs-topbar) {
+  display: flex;
+  flex: 1;
+}
+.rich-content-viewer pre > .hljs-line-numbers + code.hljs {
+  flex: 1;
+}
+
+/* ── hljs token colors (GitHub Dark theme) ────────────────────────────────── */
+.hljs-comment, .hljs-quote             { color: #8b949e; font-style: italic; }
+.hljs-keyword, .hljs-selector-tag,
+.hljs-addition                         { color: #ff7b72; }
+.hljs-number, .hljs-string,
+.hljs-meta .hljs-meta-string,
+.hljs-literal, .hljs-doctag,
+.hljs-regexp                           { color: #a5d6ff; }
+.hljs-title, .hljs-section,
+.hljs-name, .hljs-selector-id,
+.hljs-selector-class                   { color: #d2a8ff; font-weight: 600; }
+.hljs-attribute, .hljs-attr,
+.hljs-variable, .hljs-template-variable,
+.hljs-class .hljs-title,
+.hljs-type                             { color: #79c0ff; }
+.hljs-symbol, .hljs-bullet,
+.hljs-subst, .hljs-meta,
+.hljs-meta .hljs-keyword,
+.hljs-selector-attr,
+.hljs-selector-pseudo,
+.hljs-link                             { color: #ffa657; }
+.hljs-built_in, .hljs-deletion         { color: #ffa657; }
+.hljs-formula                          { background: #161b22; }
+.hljs-emphasis                         { font-style: italic; }
+.hljs-strong                           { font-weight: 800; }
+
+/* ── Quill editor: code-block preview (while editing) ─────────────────────── */
+.ql-editor pre.ql-syntax {
+  background: #0d1117 !important;
+  color: #e6edf3 !important;
+  border: 1px solid #30363d !important;
+  border-radius: 0.75rem !important;
+  font-family: 'JetBrains Mono', 'Fira Code', ui-monospace, monospace !important;
+  font-size: 0.875rem !important;
+  line-height: 1.7 !important;
+  padding: 1rem 1.25rem !important;
+  margin: 0.75rem 0 !important;
+}
+
+/* ── Quill editor: min-height & fullscreen ─────────────────────────────────── */
+.ql-editor {
+  min-height: 320px !important;
+  font-size: 1rem !important;
+  line-height: 1.75 !important;
+}
+.quill-fullscreen .ql-editor {
+  min-height: calc(100vh - 180px) !important;
+}
+.quill-fullscreen {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 200 !important;
+  background: white;
+  border-radius: 0 !important;
+  overflow-y: auto;
+}
+.dark .quill-fullscreen {
+  background: #0f172a;
 }
 
 /* ─── Quill dark mode fixes ─────────────────────────────────────────────────── */

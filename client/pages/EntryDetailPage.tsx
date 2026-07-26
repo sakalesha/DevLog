@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef, useCallback } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate, Link, useLocation } from 'react-router-dom';
 import {
   ChevronLeft,
@@ -29,52 +29,7 @@ import { format } from 'date-fns';
 import { Badge } from '../components/ui/Badge';
 import { ToastContainer } from '../components/ui/Toast';
 import { useToast } from '../hooks/useToast';
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-/** Strip HTML tags and return plain text */
-function stripHtml(html: string): string {
-  return html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
-}
-
-/** Estimate reading time in minutes (assumes 200 wpm for technical content) */
-function estimateReadingTime(html: string): number {
-  const words = stripHtml(html).split(/\s+/).filter(Boolean).length;
-  return Math.max(1, Math.ceil(words / 200));
-}
-
-/** Count words */
-function wordCount(html: string): number {
-  return stripHtml(html).split(/\s+/).filter(Boolean).length;
-}
-
-interface TocEntry { id: string; text: string; level: number }
-
-/** Extract headings from HTML for table of contents */
-function extractToc(html: string): TocEntry[] {
-  const div = document.createElement('div');
-  div.innerHTML = html;
-  const headings = div.querySelectorAll('h1, h2, h3');
-  return Array.from(headings).map((h, i) => ({
-    id: `heading-${i}`,
-    text: h.textContent || '',
-    level: parseInt(h.tagName[1]),
-  })).filter(h => h.text.trim());
-}
-
-/** Inject IDs into headings and add copy buttons to pre/code blocks */
-function enrichContent(html: string): string {
-  const div = document.createElement('div');
-  div.innerHTML = html;
-
-  // Add IDs to headings for ToC anchors
-  const headings = div.querySelectorAll('h1, h2, h3');
-  headings.forEach((h, i) => {
-    (h as HTMLElement).id = `heading-${i}`;
-  });
-
-  return div.innerHTML;
-}
+import RichContentViewer, { extractToc, stripHtml, estimateReadingTime, wordCount, TocEntry } from '../components/ui/RichContentViewer';
 
 // ─── Confirm Dialog ───────────────────────────────────────────────────────────
 
@@ -130,7 +85,6 @@ const EntryDetailPage: React.FC = () => {
   const [showConfirmDelete, setShowConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [toc, setToc] = useState<TocEntry[]>([]);
-  const [enrichedContent, setEnrichedContent] = useState('');
 
   // Check for published=true query param (redirected from editor)
   const justPublished = new URLSearchParams(location.search).get('published') === 'true';
@@ -140,8 +94,6 @@ const EntryDetailPage: React.FC = () => {
       entryService.getEntryById(id).then(async data => {
         if (data) {
           setEntry(data);
-          const enriched = enrichContent(data.content);
-          setEnrichedContent(enriched);
           setToc(extractToc(data.content));
           try {
             const aiSuggestions = await geminiService.getLearningSuggestions(data.topic, data.category, data.categoryPath);
@@ -154,30 +106,6 @@ const EntryDetailPage: React.FC = () => {
       });
     }
   }, [id]);
-
-  // Inject copy-to-clipboard buttons into rendered code blocks
-  useEffect(() => {
-    if (!contentRef.current) return;
-    const codeBlocks = contentRef.current.querySelectorAll('pre');
-    codeBlocks.forEach(pre => {
-      if (pre.querySelector('.copy-code-btn')) return; // already added
-      const btn = document.createElement('button');
-      btn.className = 'copy-code-btn';
-      btn.setAttribute('aria-label', 'Copy code');
-      btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Copy`;
-      btn.onclick = () => {
-        const code = pre.querySelector('code')?.textContent || pre.textContent || '';
-        navigator.clipboard.writeText(code).then(() => {
-          btn.textContent = '✓ Copied!';
-          setTimeout(() => {
-            btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Copy`;
-          }, 2000);
-        });
-      };
-      pre.style.position = 'relative';
-      pre.appendChild(btn);
-    });
-  }, [enrichedContent]);
 
   const handleDeepDive = async (topic: string) => {
     setDeepDiveLoading(true);
@@ -369,19 +297,10 @@ const EntryDetailPage: React.FC = () => {
 
           {/* Rich Notes */}
           <section>
-            <h2 className="text-sm font-extrabold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-4">
+            <h2 className="text-sm font-extrabold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-6">
               Detailed Notes & Code
             </h2>
-            <div
-              ref={contentRef}
-              className="text-slate-700 dark:text-slate-200 leading-relaxed text-base md:text-lg prose dark:prose-invert max-w-none
-                prose-pre:bg-slate-900 dark:prose-pre:bg-slate-950
-                prose-pre:border prose-pre:border-slate-700 prose-pre:rounded-xl prose-pre:relative
-                prose-code:text-primary-600 dark:prose-code:text-primary-400
-                prose-headings:scroll-mt-24
-                prose-a:text-indigo-600 dark:prose-a:text-indigo-400 prose-a:font-semibold prose-a:no-underline hover:prose-a:underline"
-              dangerouslySetInnerHTML={{ __html: enrichedContent }}
-            />
+            <RichContentViewer html={entry.content} containerRef={contentRef} />
           </section>
 
           {/* Key Takeaway Highlight Box */}
