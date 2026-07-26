@@ -160,40 +160,56 @@ const RichContentViewer: React.FC<RichContentViewerProps> = ({ html, containerRe
       ref={ref as React.RefObject<HTMLDivElement>}
       className="
         rich-content-viewer
-        text-slate-700 dark:text-slate-200
-        leading-relaxed text-base md:text-lg
+        max-w-[700px] mx-auto
+        text-slate-800 dark:text-slate-200
+        leading-[1.85] text-lg md:text-[1.15rem]
+        font-sans
         prose dark:prose-invert max-w-none
 
         prose-headings:scroll-mt-24
-        prose-headings:font-bold
-        prose-h1:text-2xl prose-h1:border-b prose-h1:border-slate-200 prose-h1:dark:border-slate-800 prose-h1:pb-2
-        prose-h2:text-xl
-        prose-h3:text-lg
+        prose-headings:font-display
+        prose-headings:tracking-tight
+        prose-headings:text-slate-900 prose-headings:dark:text-white
 
-        prose-p:leading-8
-        prose-li:leading-7
+        prose-h1:text-3xl md:prose-h1:text-4xl prose-h1:font-black prose-h1:mt-14 prose-h1:mb-6
+        prose-h2:text-2xl md:prose-h2:text-3xl prose-h2:font-extrabold prose-h2:mt-12 prose-h2:mb-5 prose-h2:border-b prose-h2:border-slate-200/80 prose-h2:dark:border-slate-800/80 prose-h2:pb-3
+        prose-h3:text-xl md:prose-h3:text-2xl prose-h3:font-bold prose-h3:mt-8 prose-h3:mb-3 prose-h3:text-indigo-600 prose-h3:dark:text-indigo-400
+        prose-h4:text-lg prose-h4:font-bold prose-h4:mt-6 prose-h4:mb-2
 
-        prose-code:text-primary-600 dark:prose-code:text-amber-400
-        prose-code:bg-slate-100 dark:prose-code:bg-slate-800
+        prose-p:leading-[1.85] prose-p:mb-6 prose-p:text-slate-800 prose-p:dark:text-slate-200
+
+        prose-ul:my-6 prose-ul:list-disc prose-ul:pl-6 prose-ul:space-y-2
+        prose-ol:my-6 prose-ol:list-decimal prose-ol:pl-6 prose-ol:space-y-2
+        prose-li:leading-[1.8] prose-li:my-1.5 prose-li:text-slate-800 prose-li:dark:text-slate-200
+        prose-li:marker:text-primary-500 prose-li:marker:font-bold
+
+        prose-code:text-indigo-600 dark:prose-code:text-amber-400
+        prose-code:bg-slate-100 dark:prose-code:bg-slate-800/80
         prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-[0.88em]
         prose-code:font-mono prose-code:before:content-none prose-code:after:content-none
 
-        prose-blockquote:border-l-4 prose-blockquote:border-primary-400
-        prose-blockquote:bg-primary-50/60 dark:prose-blockquote:bg-primary-950/20
-        prose-blockquote:rounded-r-xl prose-blockquote:not-italic
-        prose-blockquote:text-slate-700 dark:prose-blockquote:text-slate-300
+        prose-blockquote:border-l-4 prose-blockquote:border-indigo-500
+        prose-blockquote:bg-gradient-to-r prose-blockquote:from-indigo-50/80 prose-blockquote:to-violet-50/40 prose-blockquote:dark:from-indigo-950/40 prose-blockquote:dark:to-violet-950/20
+        prose-blockquote:px-6 prose-blockquote:py-5 prose-blockquote:rounded-2xl prose-blockquote:not-italic
+        prose-blockquote:my-8 prose-blockquote:text-indigo-950 prose-blockquote:dark:text-indigo-200 prose-blockquote:shadow-sm
+        prose-blockquote:font-medium
 
         prose-a:text-indigo-600 dark:prose-a:text-indigo-400
         prose-a:font-semibold prose-a:no-underline hover:prose-a:underline
 
         prose-strong:text-slate-900 dark:prose-strong:text-white
-        prose-strong:font-extrabold
+        prose-strong:font-bold
+        prose-strong:bg-amber-100/40 prose-strong:dark:bg-amber-900/20 prose-strong:px-1 prose-strong:rounded
+        prose-em:text-slate-800 dark:prose-em:text-slate-200
 
-        prose-table:text-sm
-        prose-th:bg-slate-100 dark:prose-th:bg-slate-800
+        prose-table:text-sm prose-table:my-8
+        prose-th:bg-slate-100 dark:prose-th:bg-slate-800 prose-th:p-3 prose-th:rounded-t
         prose-th:font-bold
+        prose-td:p-3 prose-td:border-b prose-td:border-slate-100 dark:prose-td:border-slate-800
 
-        [&_pre]:!bg-transparent [&_pre]:!p-0 [&_pre]:!border-0 [&_pre]:!rounded-none [&_pre]:!overflow-visible
+        prose-hr:my-10 prose-hr:border-slate-200 dark:prose-hr:border-slate-800
+
+        [&_pre]:!bg-transparent [&_pre]:!p-0 [&_pre]:!border-0 [&_pre]:!rounded-none [&_pre]:!overflow-visible [&_pre]:!my-8
       "
       dangerouslySetInnerHTML={{ __html: html }}
     />
