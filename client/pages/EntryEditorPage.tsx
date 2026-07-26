@@ -1,10 +1,8 @@
-
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useParams, Link, useLocation } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import ReactQuill from 'react-quill-new';
 import {
   Save,
-  Trash2,
   Sparkles,
   ChevronLeft,
   Loader2,
@@ -12,17 +10,17 @@ import {
   Tags,
   MessageCircle,
   AlertCircle,
-  Eye,
-  Edit3,
   CheckCircle2,
-  X
+  X,
+  BookOpen,
+  Calendar,
+  Lightbulb
 } from 'lucide-react';
-import { CATEGORIES } from '../constants';
 import { entryService } from '../services/entryService';
 import { geminiService } from '../services/geminiService';
-import { challengeService } from '../services/challengeService';
-import { Challenge, Category, LearningEntry } from '../types';
-
+import { categoryService, getCategoryPath } from '../services/categoryService';
+import { Category, LearningEntry } from '../types';
+import { CategoryTreeSelector } from '../components/categories/CategoryTreeSelector';
 
 interface Toast {
   message: string;
@@ -33,67 +31,60 @@ const EntryEditorPage: React.FC = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
-  const [challenges, setChallenges] = useState<Challenge[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(false);
-
   const [aiLoading, setAiLoading] = useState(false);
   const [toast, setToast] = useState<Toast | null>(null);
+  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [suggLoading, setSuggLoading] = useState(false);
 
   const [formData, setFormData] = useState<Partial<LearningEntry>>({
     topic: '',
-    category: 'DSA',
+    category: 'General',
+    categoryId: undefined,
+    categoryPath: [],
     content: '',
     keyTakeaway: '',
     doubts: '',
-    timeSpent: { amount: 30, unit: 'minutes' },
+    timeSpent: { amount: 45, unit: 'minutes' },
     tags: [],
     date: new Date().toISOString().split('T')[0],
-    challengeId: '',
-    dayNumber: 0,
+    status: 'published',
   });
-
-  const [nextDay, setNextDay] = useState<number>(1);
-
 
   const [tagInput, setTagInput] = useState('');
 
   useEffect(() => {
     const fetchData = async () => {
-      const allChallenges = await challengeService.getChallenges();
-      setChallenges(allChallenges);
+      try {
+        const cats = await categoryService.getCategories();
+        setCategories(cats);
 
-      if (id) {
-        const entry = await entryService.getEntryById(id);
-        if (entry) {
-          setFormData(entry);
-          return;
+        if (id) {
+          const entry = await entryService.getEntryById(id);
+          if (entry) {
+            setFormData(entry);
+            return;
+          }
+        } else {
+          // Check for categoryId in query params
+          const searchParams = new URLSearchParams(location.search);
+          const queryCatId = searchParams.get('category');
+          if (queryCatId) {
+            const cat = cats.find(c => c._id === queryCatId);
+            const path = getCategoryPath(cats, queryCatId);
+            if (cat) {
+              setFormData(prev => ({ ...prev, categoryId: queryCatId, category: cat.name, categoryPath: path }));
+            }
+          }
         }
-      }
-
-      // Check for challengeId in query params
-      const searchParams = new URLSearchParams(location.search);
-      const queryChallengeId = searchParams.get('challengeId');
-      if (queryChallengeId) {
-        setFormData(prev => ({ ...prev, challengeId: queryChallengeId }));
-      } else if (allChallenges.length > 0) {
-        setFormData(prev => ({ ...prev, challengeId: allChallenges[0]._id }));
+      } catch (err) {
+        console.error('Failed to load editor data', err);
       }
     };
     fetchData();
   }, [id, location.search]);
 
-  // Update nextDay whenever challengeId changes
-  useEffect(() => {
-    if (formData.challengeId && !id) {
-      entryService.getEntries().then(entries => {
-        const challengeEntries = entries.filter(e => e.challengeId === formData.challengeId);
-        setNextDay(challengeEntries.length + 1);
-      });
-    }
-  }, [formData.challengeId, id]);
-
-
-  // Auto-hide toast after 3 seconds
   useEffect(() => {
     if (toast) {
       const timer = setTimeout(() => setToast(null), 3000);
@@ -104,8 +95,8 @@ const EntryEditorPage: React.FC = () => {
   const handleAiGenerate = async () => {
     const plainText = formData.content?.replace(/<[^>]*>?/gm, '').trim() || '';
 
-    if (plainText.length < 50) {
-      setToast({ message: "Content too short for AI analysis (min 50 chars).", type: 'error' });
+    if (plainText.length < 30) {
+      setToast({ message: "Content too short for AI analysis (min 30 chars).", type: 'error' });
       return;
     }
 
@@ -113,11 +104,31 @@ const EntryEditorPage: React.FC = () => {
     try {
       const takeaway = await geminiService.generateKeyTakeaway(plainText);
       setFormData(prev => ({ ...prev, keyTakeaway: takeaway }));
-      setToast({ message: "Key takeaway generated!", type: 'success' });
+      setToast({ message: "Key takeaway generated by Gemini AI!", type: 'success' });
     } catch (err) {
       setToast({ message: "AI generation failed.", type: 'error' });
     } finally {
       setAiLoading(false);
+    }
+  };
+
+  const handleGetSuggestions = async () => {
+    if (!formData.topic) {
+      setToast({ message: "Please enter a topic first.", type: 'error' });
+      return;
+    }
+    setSuggLoading(true);
+    try {
+      const suggs = await geminiService.getLearningSuggestions(
+        formData.topic,
+        formData.category || 'General',
+        formData.categoryPath
+      );
+      setSuggestions(suggs);
+    } catch (err) {
+      setSuggestions(["System Design Patterns", "Concurrency in Depth", "Advanced Testing"]);
+    } finally {
+      setSuggLoading(false);
     }
   };
 
@@ -138,18 +149,16 @@ const EntryEditorPage: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.topic || !formData.content || !formData.keyTakeaway) {
-      setToast({ message: "Please fill in all required fields.", type: 'error' });
+      setToast({ message: "Please fill in all required fields (Topic, Content, Takeaway).", type: 'error' });
       return;
     }
     setLoading(true);
     try {
       await entryService.saveEntry(formData);
-      setToast({ message: id ? "Entry updated successfully!" : "New entry logged!", type: 'success' });
-
-      // Delay navigation to allow user to see the success toast
+      setToast({ message: id ? "Entry updated successfully!" : "New learning log recorded!", type: 'success' });
       setTimeout(() => {
         navigate('/');
-      }, 1500);
+      }, 1200);
     } catch (err) {
       setToast({ message: "Failed to save entry. Please try again.", type: 'error' });
     } finally {
@@ -168,14 +177,15 @@ const EntryEditorPage: React.FC = () => {
   };
 
   return (
-    <div className="max-w-4xl mx-auto pb-12 relative">
+    <div className="max-w-4xl mx-auto pb-16 relative animate-fade-in">
       {/* Toast Notification */}
       {toast && (
         <div
-          className={`fixed top-6 right-6 z-[100] flex items-center gap-3 px-5 py-3 rounded-xl shadow-2xl animate-in slide-in-from-right-10 duration-300 border ${toast.type === 'success'
-            ? 'bg-green-600 text-white border-green-500'
-            : 'bg-red-600 text-white border-red-500'
-            }`}
+          className={`fixed top-6 right-6 z-[100] flex items-center gap-3 px-5 py-3.5 rounded-2xl shadow-2xl animate-in slide-in-from-right-10 duration-300 border backdrop-blur-md ${
+            toast.type === 'success'
+              ? 'bg-emerald-600/95 text-white border-emerald-500 shadow-emerald-600/20'
+              : 'bg-red-600/95 text-white border-red-500 shadow-red-600/20'
+          }`}
         >
           {toast.type === 'success' ? <CheckCircle2 className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
           <p className="font-bold text-sm">{toast.message}</p>
@@ -185,227 +195,262 @@ const EntryEditorPage: React.FC = () => {
         </div>
       )}
 
-      <div className="flex items-center justify-between mb-8">
+      {/* Header Bar */}
+      <div className="flex items-center justify-between mb-6">
         <button
           onClick={() => navigate(-1)}
-          className="flex items-center gap-2 text-gray-500 hover:text-gray-900 transition-colors font-medium"
+          className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/60 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-800 transition-all text-sm font-semibold shadow-sm"
         >
           <ChevronLeft className="w-4 h-4" />
-          Back
+          <span>Back to Logs</span>
         </button>
-        <div className="flex gap-3">
-          {id && (
-            <>
-              <Link
-                to={`/entry/${id}/edit`}
-                className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-colors font-semibold ${location.pathname.includes('/edit')
-                  ? 'bg-blue-50 text-blue-600 border border-blue-100'
-                  : 'text-gray-600 hover:bg-gray-100'
-                  }`}
-              >
-                <Edit3 className="w-4 h-4" />
-                Edit Log
-              </Link>
-              <Link
-                to={`/entries/${id}`}
-                className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-xl transition-colors font-semibold"
-              >
-                <Eye className="w-4 h-4" />
-                View Log
-              </Link>
-              <button
-                onClick={async () => {
-                  if (window.confirm('Delete this log?')) {
-                    await entryService.deleteEntry(id);
-                    setToast({ message: "Entry deleted.", type: 'success' });
-                    setTimeout(() => navigate('/'), 1000);
-                  }
-                }}
-                className="p-3 text-red-500 hover:bg-red-50 rounded-xl transition-colors"
-              >
-                <Trash2 className="w-5 h-5" />
-              </button>
-            </>
-          )}
-          <button
-            form="entry-form"
-            disabled={loading}
-            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white px-6 py-3 rounded-xl font-bold transition-all shadow-lg shadow-blue-200"
-          >
-            {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
-            {id ? 'Update Log' : 'Save Log'}
-          </button>
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-bold px-3 py-1.5 rounded-full bg-primary-100 dark:bg-primary-950/80 text-primary-700 dark:text-primary-300 border border-primary-200/50 dark:border-primary-800/50 flex items-center gap-1.5">
+            <BookOpen className="w-3.5 h-3.5" />
+            <span>{id ? 'Editing Log' : 'New Learning Entry'}</span>
+          </span>
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-        <div className="bg-blue-600 px-8 py-6 text-white flex justify-between items-center">
-          <div>
-            <h1 className="text-2xl font-bold">{id ? 'Edit Learning Log' : 'What did you learn today?'}</h1>
-            <p className="text-blue-100 opacity-90">Document your progress and build your portfolio.</p>
+      {/* Main Studio Card */}
+      <form onSubmit={handleSubmit} className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border border-white/60 dark:border-white/10 rounded-3xl p-6 md:p-8 shadow-xl space-y-6">
+        
+        {/* Topic Title & Date */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="md:col-span-2 space-y-1.5">
+            <label className="block text-sm font-bold text-slate-700 dark:text-slate-200">
+              What did you learn today? *
+            </label>
+            <input
+              type="text"
+              required
+              placeholder="e.g. Mastered React 19 Action Hooks & Concurrent State..."
+              value={formData.topic}
+              onChange={(e) => setFormData(prev => ({ ...prev, topic: e.target.value }))}
+              className="w-full px-4 py-3 rounded-2xl bg-white dark:bg-slate-850 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-bold text-lg placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-primary-500/50 shadow-sm transition-all"
+            />
           </div>
-          {!id && formData.challengeId && (
-            <div className="text-right">
-              <span className="block text-[10px] font-black uppercase tracking-widest opacity-60">Session</span>
-              <span className="text-2xl font-black">Day {nextDay}</span>
-            </div>
-          )}
+          <div className="space-y-1.5">
+            <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 flex items-center gap-1.5">
+              <Calendar className="w-4 h-4 text-primary-500" />
+              <span>Date Recorded *</span>
+            </label>
+            <input
+              type="date"
+              required
+              value={formData.date}
+              onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
+              className="w-full px-4 py-3 rounded-2xl bg-white dark:bg-slate-850 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 font-semibold focus:outline-none focus:ring-2 focus:ring-primary-500/50 shadow-sm"
+            />
+          </div>
         </div>
 
+        {/* N-Depth Category Tree Selector */}
+        <div className="p-4 rounded-2xl bg-slate-50/70 dark:bg-slate-850/50 border border-slate-200/70 dark:border-slate-800/80">
+          <CategoryTreeSelector
+            categories={categories}
+            selectedCategoryId={formData.categoryId}
+            onSelect={(catId, catName, path) => {
+              setFormData(prev => ({
+                ...prev,
+                categoryId: catId,
+                category: catName,
+                categoryPath: path,
+              }));
+            }}
+            onCategoryCreated={(newCat) => {
+              setCategories(prev => [...prev, newCat]);
+            }}
+          />
+        </div>
 
-        <form id="entry-form" onSubmit={handleSubmit} className="p-8 space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-2">
-              <label className="text-sm font-bold text-gray-700">Topic / Title</label>
+        {/* Rich Text Studio */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <label className="block text-sm font-bold text-slate-700 dark:text-slate-200">
+              Detailed Learning Notes & Code Snippets *
+            </label>
+            <span className="text-xs text-slate-400 dark:text-slate-500">Markdown & syntax highlighted</span>
+          </div>
+          <div className="bg-white dark:bg-slate-850 rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-700 shadow-inner">
+            <ReactQuill
+              theme="snow"
+              value={formData.content}
+              onChange={(val) => setFormData(prev => ({ ...prev, content: val }))}
+              modules={quillModules}
+              placeholder="Write out your concepts, code examples, diagrams, or architectural takeaways..."
+              className="dark:text-slate-100"
+            />
+          </div>
+        </div>
+
+        {/* Key Takeaway + AI Generator */}
+        <div className="p-5 rounded-2xl bg-amber-50/50 dark:bg-amber-950/20 border border-amber-200/60 dark:border-amber-800/40 space-y-3">
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <label className="block text-sm font-bold text-amber-900 dark:text-amber-200 flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-amber-500 animate-pulse" />
+              <span>Core Key Takeaway (TL;DR) *</span>
+            </label>
+            <button
+              type="button"
+              onClick={handleAiGenerate}
+              disabled={aiLoading}
+              className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white text-xs font-bold flex items-center gap-1.5 shadow-md shadow-amber-500/20 disabled:opacity-50 transition-all"
+            >
+              {aiLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+              <span>AI Summarize from Notes</span>
+            </button>
+          </div>
+          <textarea
+            required
+            rows={2}
+            placeholder="In 1-2 sentences, what is the single most important concept or golden rule you learned?"
+            value={formData.keyTakeaway}
+            onChange={(e) => setFormData(prev => ({ ...prev, keyTakeaway: e.target.value }))}
+            className="w-full p-3 rounded-xl bg-white dark:bg-slate-900 border border-amber-200 dark:border-amber-800/60 text-slate-900 dark:text-slate-100 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-amber-500/50 shadow-sm"
+          />
+        </div>
+
+        {/* Doubts & Time Spent */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-1.5">
+            <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 flex items-center gap-1.5">
+              <MessageCircle className="w-4 h-4 text-indigo-500" />
+              <span>Open Questions & Doubts (Optional)</span>
+            </label>
+            <input
+              type="text"
+              placeholder="What still feels unclear or needs exploration?"
+              value={formData.doubts}
+              onChange={(e) => setFormData(prev => ({ ...prev, doubts: e.target.value }))}
+              className="w-full px-4 py-3 rounded-2xl bg-white dark:bg-slate-850 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary-500/50 shadow-sm"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 flex items-center gap-1.5">
+              <Clock className="w-4 h-4 text-emerald-500" />
+              <span>Time Dedicated</span>
+            </label>
+            <div className="flex gap-2">
               <input
-                type="text"
-                placeholder="e.g. Binary Tree BFS"
-                className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 outline-none"
-                value={formData.topic}
-                onChange={e => setFormData(prev => ({ ...prev, topic: e.target.value }))}
-                maxLength={100}
+                type="number"
+                min="1"
+                required
+                value={formData.timeSpent?.amount || 0}
+                onChange={(e) => setFormData(prev => ({
+                  ...prev,
+                  timeSpent: { ...prev.timeSpent!, amount: parseInt(e.target.value) || 0 }
+                }))}
+                className="w-28 px-4 py-3 rounded-2xl bg-white dark:bg-slate-850 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-bold text-center focus:outline-none focus:ring-2 focus:ring-primary-500/50 shadow-sm"
               />
-              <span className="text-[10px] text-gray-400 float-right">{formData.topic?.length}/100</span>
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-bold text-gray-700">Challenge</label>
               <select
-                className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 outline-none appearance-none bg-white"
-                value={formData.challengeId}
-                onChange={e => setFormData(prev => ({ ...prev, challengeId: e.target.value }))}
-                disabled={!!id}
+                value={formData.timeSpent?.unit || 'minutes'}
+                onChange={(e: any) => setFormData(prev => ({
+                  ...prev,
+                  timeSpent: { ...prev.timeSpent!, unit: e.target.value }
+                }))}
+                className="flex-1 px-4 py-3 rounded-2xl bg-white dark:bg-slate-850 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 font-semibold focus:outline-none focus:ring-2 focus:ring-primary-500/50 shadow-sm cursor-pointer"
               >
-                <option value="">No Challenge</option>
-                {challenges.map(c => (
-                  <option key={c._id} value={c._id}>{c.name}</option>
-                ))}
+                <option value="minutes">Minutes</option>
+                <option value="hours">Hours</option>
               </select>
             </div>
           </div>
+        </div>
 
-
-          <div className="bg-blue-50/50 border border-blue-100 rounded-xl p-5 mb-6">
-            <h3 className="text-sm font-bold text-blue-900 mb-2">💡 Writing Prompt</h3>
-            <div className="flex flex-col md:flex-row gap-4 text-sm text-blue-800">
-              <div className="flex-1">
-                <span className="font-bold text-blue-600 block text-xs uppercase tracking-wider mb-1">Start with</span>
-                "What confused me today?"
-              </div>
-              <div className="hidden md:block w-px bg-blue-200"></div>
-              <div className="flex-1">
-                <span className="font-bold text-blue-600 block text-xs uppercase tracking-wider mb-1">End with</span>
-                "Here’s how I fixed my thinking."
-              </div>
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-sm font-bold text-gray-700 mb-1 block">Learning Content</label>
-            <div className="rich-text-wrapper">
-              <ReactQuill
-                theme="snow"
-                value={formData.content}
-                onChange={content => setFormData(prev => ({ ...prev, content }))}
-                modules={quillModules}
-                placeholder="Explain as if you are teaching someone else... (Use Code Block for snippets)"
-              />
-            </div>
-            <div className="flex justify-between items-center text-[10px] text-gray-400 mt-2">
-              <span>Min 50 chars required</span>
-              <span>Rich text enabled</span>
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <label className="text-sm font-bold text-gray-700">Key Takeaway</label>
-              <button
-                type="button"
-                onClick={handleAiGenerate}
-                disabled={aiLoading}
-                className="flex items-center gap-1.5 text-xs font-bold text-blue-600 hover:text-blue-700 disabled:text-gray-400 bg-blue-50 px-2.5 py-1.5 rounded-lg transition-colors"
+        {/* Tags */}
+        <div className="space-y-2">
+          <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 flex items-center gap-1.5">
+            <Tags className="w-4 h-4 text-blue-500" />
+            <span>Tags & Keywords (Press Enter to add)</span>
+          </label>
+          <div className="p-3 rounded-2xl bg-white dark:bg-slate-850 border border-slate-200 dark:border-slate-700 flex flex-wrap items-center gap-2 shadow-sm min-h-[50px]">
+            {formData.tags?.map(tag => (
+              <span
+                key={tag}
+                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold text-xs border border-slate-200 dark:border-slate-700"
               >
-                {aiLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
-                AI Generate
-              </button>
-            </div>
-            <textarea
-              rows={2}
-              placeholder="One core principle you'll never forget..."
-              className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 outline-none resize-none"
-              value={formData.keyTakeaway}
-              onChange={e => setFormData(prev => ({ ...prev, keyTakeaway: e.target.value }))}
-              maxLength={200}
+                <span>#{tag}</span>
+                <button
+                  type="button"
+                  onClick={() => removeTag(tag)}
+                  className="hover:text-red-500 transition-colors"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </span>
+            ))}
+            <input
+              type="text"
+              placeholder="Add keyword e.g. hooks, dsa, nextjs..."
+              value={tagInput}
+              onChange={(e) => setTagInput(e.target.value)}
+              onKeyDown={handleAddTag}
+              className="flex-1 min-w-[150px] bg-transparent text-sm font-medium text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none px-2 py-1"
             />
           </div>
+        </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-4">
-            <div className="space-y-4">
-              <div className="flex items-center gap-3">
-                <Clock className="w-5 h-5 text-gray-400" />
-                <div className="flex-1 space-y-2">
-                  <label className="text-sm font-bold text-gray-700">Time Spent</label>
-                  <div className="flex gap-2">
-                    <input
-                      type="number"
-                      className="w-20 px-3 py-2 border rounded-lg outline-none"
-                      value={formData.timeSpent?.amount}
-                      onChange={e => setFormData(prev => ({ ...prev, timeSpent: { ...prev.timeSpent!, amount: parseInt(e.target.value) || 0 } }))}
-                    />
-                    <select
-                      className="flex-1 px-3 py-2 border rounded-lg outline-none bg-white"
-                      value={formData.timeSpent?.unit}
-                      onChange={e => setFormData(prev => ({ ...prev, timeSpent: { ...prev.timeSpent!, unit: e.target.value as 'minutes' | 'hours' } }))}
-                    >
-                      <option value="minutes">Minutes</option>
-                      <option value="hours">Hours</option>
-                    </select>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-3">
-                <Tags className="w-5 h-5 text-gray-400" />
-                <div className="flex-1 space-y-2">
-                  <label className="text-sm font-bold text-gray-700">Tags</label>
-                  <input
-                    type="text"
-                    placeholder="Press enter to add tags"
-                    className="w-full px-3 py-2 border rounded-lg outline-none"
-                    value={tagInput}
-                    onChange={e => setTagInput(e.target.value)}
-                    onKeyDown={handleAddTag}
-                  />
-                  <div className="flex flex-wrap gap-2 mt-2">
-                    {formData.tags?.map(tag => (
-                      <span key={tag} className="flex items-center gap-1 bg-gray-100 text-gray-700 px-2 py-1 rounded-md text-xs font-bold">
-                        {tag}
-                        <button type="button" onClick={() => removeTag(tag)} className="text-gray-400 hover:text-red-500">×</button>
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              </div>
+        {/* AI Next Topic Suggestions */}
+        <div className="p-4 rounded-2xl bg-indigo-50/50 dark:bg-indigo-950/30 border border-indigo-200/60 dark:border-indigo-800/50 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5">
+            <div className="p-2 rounded-xl bg-indigo-500 text-white shadow-md shadow-indigo-500/20">
+              <Lightbulb className="w-4 h-4" />
             </div>
-
-            <div className="space-y-4">
-              <div className="flex items-center gap-3">
-                <MessageCircle className="w-5 h-5 text-gray-400" />
-                <div className="flex-1 space-y-2">
-                  <label className="text-sm font-bold text-gray-700">Doubts (Optional)</label>
-                  <textarea
-                    rows={4}
-                    placeholder="Anything that still feels fuzzy?"
-                    className="w-full px-3 py-2 border rounded-lg outline-none resize-none"
-                    value={formData.doubts}
-                    onChange={e => setFormData(prev => ({ ...prev, doubts: e.target.value }))}
-                  />
-                </div>
-              </div>
+            <div>
+              <p className="text-sm font-bold text-slate-900 dark:text-white">Curious what to study next?</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400">Get Gemini AI recommendations tailored to your active hierarchy path.</p>
             </div>
           </div>
-        </form>
-      </div>
+          <button
+            type="button"
+            onClick={handleGetSuggestions}
+            disabled={suggLoading}
+            className="px-4 py-2 rounded-xl bg-white dark:bg-slate-850 border border-indigo-200 dark:border-indigo-800 text-indigo-600 dark:text-indigo-400 text-xs font-bold hover:bg-indigo-50 dark:hover:bg-indigo-900/40 transition-all flex items-center gap-1.5 shadow-sm"
+          >
+            {suggLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+            <span>Get Next Study Topics</span>
+          </button>
+        </div>
+
+        {suggestions.length > 0 && (
+          <div className="p-4 rounded-2xl bg-white dark:bg-slate-850 border border-indigo-200 dark:border-indigo-800 space-y-2 animate-fade-in">
+            <p className="text-xs font-extrabold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">Suggested Next Topics:</p>
+            <div className="flex flex-wrap gap-2">
+              {suggestions.map((sugg, idx) => (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => setFormData(prev => ({ ...prev, topic: sugg }))}
+                  className="px-3 py-1.5 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 text-xs font-semibold border border-indigo-200/60 dark:border-indigo-800/60 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 transition-colors"
+                >
+                  + {sugg}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Submit Actions */}
+        <div className="pt-4 border-t border-slate-200/80 dark:border-slate-800 flex items-center justify-end gap-3">
+          <button
+            type="button"
+            onClick={() => navigate(-1)}
+            className="px-6 py-3 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold text-sm transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            disabled={loading}
+            className="px-8 py-3 rounded-xl bg-gradient-to-r from-primary-600 to-amber-500 hover:from-primary-500 hover:to-amber-400 text-white font-bold text-sm shadow-lg shadow-primary-500/30 hover:shadow-primary-500/40 disabled:opacity-50 transition-all flex items-center gap-2"
+          >
+            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+            <span>{id ? 'Save Changes' : 'Publish Learning Log'}</span>
+          </button>
+        </div>
+
+      </form>
     </div>
   );
 };

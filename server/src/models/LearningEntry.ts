@@ -4,15 +4,15 @@ export interface ILearningEntry extends Document {
     userId: string;
     date: Date;
     topic: string;
-    category: 'Frontend' | 'Backend' | 'Fullstack' | 'DevOps' | 'DSA' | 'System Design' | 'Cloud' | 'Other';
+    category: string;
+    categoryId?: string;
+    categoryPath?: string[];
     content: string;
     keyTakeaway: string;
     timeSpent: {
         amount: number;
         unit: 'minutes' | 'hours';
     };
-    challengeId: string; // 'none' or ObjectId string
-    dayNumber: number;
     tags: string[];
     status: 'draft' | 'published';
     views: number;
@@ -28,16 +28,16 @@ const LearningEntrySchema: Schema = new Schema(
         category: {
             type: String,
             required: true,
-            enum: ['Frontend', 'Backend', 'Fullstack', 'DevOps', 'DSA', 'System Design', 'Cloud', 'Other'],
+            default: 'General',
         },
+        categoryId: { type: String, default: null },
+        categoryPath: [{ type: String }],
         content: { type: String, required: true }, // Rich text HTML
         keyTakeaway: { type: String, required: true },
         timeSpent: {
             amount: { type: Number, required: true },
             unit: { type: String, required: true, enum: ['minutes', 'hours'] },
         },
-        challengeId: { type: String, required: true, default: 'none' }, // Can be an ObjectId if referenced
-        dayNumber: { type: Number, required: true },
         tags: [{ type: String }],
         status: {
             type: String,
@@ -53,3 +53,4 @@ const LearningEntrySchema: Schema = new Schema(
 );
 
 export default mongoose.model<ILearningEntry>('LearningEntry', LearningEntrySchema);
+

@@ -1,29 +1,18 @@
 
-export type Category =
-  | 'DSA'
-  | 'Java'
-  | 'JavaScript'
-  | 'React'
-  | 'Backend'
-  | 'Frontend'
-  | 'Database'
-  | 'System Design'
-  | 'AI/ML'
-  | 'Other';
-
-export interface Challenge {
+export interface Category {
   _id: string;
   userId: string;
   name: string;
-  category: Category;
-  description: string;
-  duration: number; // in days
-  startDate: string;
-  status: 'active' | 'completed' | 'paused';
-  createdAt: string;
-  updatedAt: string;
+  parentId: string | null;
+  color?: string;
+  icon?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
+export interface CategoryTreeNode extends Category {
+  children?: CategoryTreeNode[];
+}
 
 export interface TimeSpent {
   amount: number;
@@ -35,13 +24,13 @@ export interface LearningEntry {
   userId: string;
   date: string;
   topic: string;
-  category: Category;
+  category: string;
+  categoryId?: string;
+  categoryPath?: string[];
   content: string;
   keyTakeaway: string;
   doubts?: string;
   timeSpent: TimeSpent;
-  challengeId: string;
-  dayNumber: number;
   tags: string[];
   status: 'draft' | 'published' | 'archived';
   views: number;

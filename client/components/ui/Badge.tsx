@@ -15,11 +15,11 @@ export const Badge: React.FC<BadgeProps> = ({
     size = 'md'
 }) => {
     const variants = {
-        blue: 'bg-primary-50 text-primary-700 border border-primary-100 shadow-sm shadow-primary-500/10',
-        gray: 'bg-slate-50 text-slate-600 border border-slate-100',
-        green: 'bg-emerald-50 text-emerald-700 border border-emerald-100',
-        orange: 'bg-amber-50 text-amber-700 border border-amber-100',
-        purple: 'bg-violet-50 text-violet-700 border border-violet-100',
+        blue: 'bg-primary-50 dark:bg-primary-950/60 text-primary-700 dark:text-primary-300 border border-primary-200/60 dark:border-primary-800/60 shadow-sm',
+        gray: 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200/60 dark:border-slate-700/60',
+        green: 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200/60 dark:border-emerald-800/60',
+        orange: 'bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-200/60 dark:border-amber-800/60',
+        purple: 'bg-violet-50 dark:bg-violet-950/60 text-violet-700 dark:text-violet-300 border border-violet-200/60 dark:border-violet-800/60',
     };
 
     const sizes = {

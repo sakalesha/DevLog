@@ -27,11 +27,12 @@ export const geminiService = {
     }
   },
 
-  getLearningSuggestions: async (topic: string, category: string): Promise<string[]> => {
+  getLearningSuggestions: async (topic: string, category: string, categoryPath?: string[]): Promise<string[]> => {
     try {
+      const catStr = categoryPath && categoryPath.length > 0 ? categoryPath.join(' > ') : category;
       const response = await ai.models.generateContent({
         model: 'gemini-3-flash-preview',
-        contents: `I just learned about "${topic}" in the category of "${category}". Suggest 3 related advanced topics I should study next.`,
+        contents: `I just learned about "${topic}" in the area of "${catStr}". Suggest 3 related advanced topics I should study next.`,
         config: {
           responseMimeType: "application/json",
           responseSchema: {

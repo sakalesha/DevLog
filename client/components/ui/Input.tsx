@@ -10,16 +10,16 @@ interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
 export const Input: React.FC<InputProps> = ({ label, icon: Icon, error, className = '', ...props }) => {
     return (
         <div className="space-y-1.5">
-            {label && <label className="block text-sm font-bold text-slate-700 ml-1">{label}</label>}
+            {label && <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 ml-1">{label}</label>}
             <div className="relative group">
                 <input
                     className={`
-                        w-full px-4 py-3 rounded-xl border bg-white/50 backdrop-blur-sm
-                        outline-none transition-all duration-300 font-medium text-slate-900 placeholder:text-slate-400
+                        w-full px-4 py-3 rounded-xl border bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm
+                        outline-none transition-all duration-300 font-medium text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500
                         ${Icon ? 'pl-11' : ''}
                         ${error
-                            ? 'border-red-300 focus:border-red-500 focus:ring-4 focus:ring-red-500/10'
-                            : 'border-slate-200 focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 hover:border-slate-300'
+                            ? 'border-red-300 dark:border-red-800 focus:border-red-500 focus:ring-4 focus:ring-red-500/10'
+                            : 'border-slate-200 dark:border-slate-700 focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 hover:border-slate-300 dark:hover:border-slate-600'
                         }
                         ${className}
                     `}

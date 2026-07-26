@@ -1,7 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
-import challengeRoutes from './routes/challengeRoutes';
+import categoryRoutes from './routes/categoryRoutes';
 import entryRoutes from './routes/entryRoutes';
 import authRoutes from './routes/authRoutes';
 
@@ -14,7 +14,7 @@ app.use(express.json());
 
 // Routes
 app.use('/api/auth', authRoutes);
-app.use('/api/challenges', challengeRoutes);
+app.use('/api/categories', categoryRoutes);
 app.use('/api/entries', entryRoutes);
 
 // Basic Route

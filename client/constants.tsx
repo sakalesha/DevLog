@@ -10,34 +10,51 @@ import {
   Terminal,
   Layers,
   Layout,
-  HelpCircle
+  HelpCircle,
+  Folder,
+  Server,
+  Cloud,
+  Shield,
+  Smartphone,
+  BookOpen
 } from 'lucide-react';
-import { Category } from './types';
 
-export const CATEGORIES: Category[] = [
-  'DSA', 'Java', 'JavaScript', 'React', 'Backend', 'Frontend', 'Database', 'System Design', 'AI/ML', 'Other'
-];
-
-export const CATEGORY_ICONS: Record<Category, import('lucide-react').LucideIcon> = {
+export const CATEGORY_ICONS: Record<string, import('lucide-react').LucideIcon> = {
   'DSA': Terminal,
   'Java': Coffee,
   'JavaScript': Code2,
+  'TypeScript': Code2,
   'React': Layout,
   'Backend': Layers,
   'Frontend': Globe,
   'Database': Database,
   'System Design': Cpu,
   'AI/ML': BrainCircuit,
+  'DevOps': Cloud,
+  'Cloud': Cloud,
+  'Security': Shield,
+  'Mobile': Smartphone,
+  'General': BookOpen,
   'Other': HelpCircle
 };
 
+export const getCategoryIcon = (name?: string): import('lucide-react').LucideIcon => {
+  if (!name) return Folder;
+  for (const [key, icon] of Object.entries(CATEGORY_ICONS)) {
+    if (name.toLowerCase().includes(key.toLowerCase())) {
+      return icon;
+    }
+  }
+  return Folder;
+};
+
 export const COLORS = {
-  primary: '#3B82F6',
-  secondary: '#10B981',
-  accent: '#F59E0B',
-  danger: '#EF4444',
-  textDark: '#1F2937',
-  textLight: '#F5F5F5',
+  primary: '#92400E',
+  secondary: '#A16207',
+  accent: '#6366F1',
+  danger: '#DC2626',
+  textDark: '#0F172A',
+  textLight: '#F8FAFC',
 };
 
 // Sanitize API_URL to remove trailing slash if present

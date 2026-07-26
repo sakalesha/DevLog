@@ -36,13 +36,6 @@ export const entryService = {
   },
 
   saveEntry: async (entryData: Partial<LearningEntry>): Promise<LearningEntry> => {
-    // Client-side auto-increment logic for dayNumber
-    if (!entryData._id && !entryData.dayNumber && entryData.challengeId && entryData.challengeId !== 'none') {
-      const allEntries = await entryService.getEntries();
-      const challengeEntries = allEntries.filter(e => e.challengeId === entryData.challengeId);
-      entryData.dayNumber = challengeEntries.length + 1;
-    }
-
     const method = entryData._id ? 'PUT' : 'POST';
     const url = entryData._id
       ? `${API_URL}/entries/${entryData._id}`
