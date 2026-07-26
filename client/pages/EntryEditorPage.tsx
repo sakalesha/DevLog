@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import ReactQuill from 'react-quill-new';
+import { marked } from 'marked';
 import {
   Sparkles,
   ChevronLeft,
@@ -19,7 +20,9 @@ import {
   Maximize2,
   Minimize2,
   AlignLeft,
-  Type
+  Type,
+  ClipboardList,
+  CheckCheck
 } from 'lucide-react';
 import { entryService } from '../services/entryService';
 import { geminiService } from '../services/geminiService';
@@ -57,6 +60,31 @@ function countChars(html: string): number {
   return html.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim().length;
 }
 
+/**
+ * Heuristic: does this plain text look like it contains markdown?
+ * Checks for the most common signals a developer would paste.
+ */
+function looksLikeMarkdown(text: string): boolean {
+  return (
+    /^#{1,6}\s.+/m.test(text)       ||  // headings
+    /\*\*[^*]+\*\*/.test(text)      ||  // bold
+    /\*[^*]+\*/.test(text)          ||  // italic
+    /^[-*+]\s.+/m.test(text)        ||  // unordered list
+    /^\d+\.\s.+/m.test(text)        ||  // ordered list
+    /^>\s.+/m.test(text)            ||  // blockquote
+    /```[\s\S]*?```/.test(text)     ||  // fenced code block
+    /`[^`]+`/.test(text)            ||  // inline code
+    /^---+$/m.test(text)            ||  // horizontal rule
+    /\[.+\]\(.+\)/.test(text)          // links
+  );
+}
+
+/** Convert markdown text to HTML via marked and sanitise for Quill */
+async function markdownToHtml(md: string): Promise<string> {
+  marked.setOptions({ gfm: true, breaks: true });
+  return await marked(md) as string;
+}
+
 // ─── Component ─────────────────────────────────────────────────────────────────
 
 const EntryEditorPage: React.FC = () => {
@@ -69,6 +97,8 @@ const EntryEditorPage: React.FC = () => {
 
   const [categories, setCategories] = useState<Category[]>([]);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [mdPasteDetected, setMdPasteDetected] = useState(false);
+  const quillRef = useRef<ReactQuill>(null);
   const [loading, setLoading] = useState(false);
   const [aiLoading, setAiLoading] = useState(false);
   const [suggLoading, setSuggLoading] = useState(false);
@@ -91,6 +121,74 @@ const EntryEditorPage: React.FC = () => {
 
   const [tagInput, setTagInput] = useState('');
   const autosaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // ─── Markdown Paste ──────────────────────────────────────────────────────────
+
+  /**
+   * Intercept paste events on the editor wrapper.
+   * If the clipboard text looks like markdown, convert it via `marked` and
+   * insert the resulting HTML at the current cursor position in Quill.
+   * Falls back to Quill's native paste for plain text / HTML content.
+   */
+  const handleEditorPaste = useCallback(async (e: React.ClipboardEvent<HTMLDivElement>) => {
+    const text = e.clipboardData.getData('text/plain');
+    const html = e.clipboardData.getData('text/html');
+
+    // If the clipboard already carries HTML (e.g. from another rich editor), let Quill handle it
+    if (html && html.trim()) return;
+    // If it doesn't look like markdown, let Quill handle it normally
+    if (!text || !looksLikeMarkdown(text)) return;
+
+    // It IS markdown — stop Quill's native paste and do our own
+    e.preventDefault();
+    e.stopPropagation();
+
+    const convertedHtml = await markdownToHtml(text);
+    const editor = quillRef.current?.getEditor();
+    if (!editor) return;
+
+    const range = editor.getSelection(true);
+    editor.clipboard.dangerouslyPasteHTML(range?.index ?? 0, convertedHtml);
+
+    toast('Markdown detected & formatted automatically! 🎉', 'success', 3500);
+    setMdPasteDetected(false);
+  }, [toast]);
+
+  /**
+   * Manual "Paste Markdown" button handler — reads from clipboard API
+   * (useful as a fallback if the auto-detect is bypassed)
+   */
+  const handleManualMarkdownPaste = useCallback(async () => {
+    try {
+      const text = await navigator.clipboard.readText();
+      if (!text.trim()) {
+        toast('Clipboard is empty.', 'error');
+        return;
+      }
+      const convertedHtml = await markdownToHtml(text);
+      const editor = quillRef.current?.getEditor();
+      if (!editor) return;
+      const range = editor.getSelection(true);
+      editor.clipboard.dangerouslyPasteHTML(range?.index ?? 0, convertedHtml);
+      toast('Markdown pasted and formatted! 🎉', 'success', 3000);
+      setMdPasteDetected(false);
+    } catch {
+      toast('Could not read clipboard. Please use Ctrl+V inside the editor.', 'error');
+    }
+  }, [toast]);
+
+  /**
+   * On clipboard change (when user focuses editor area), check if clipboard
+   * looks like markdown and show a hint badge.
+   */
+  const handleEditorFocus = useCallback(async () => {
+    try {
+      const text = await navigator.clipboard.readText();
+      setMdPasteDetected(!!text && looksLikeMarkdown(text));
+    } catch {
+      // clipboard permission not granted — silently ignore
+    }
+  }, []);
 
   // ─── Data Loading ──────────────────────────────────────────────────────────
 
@@ -380,6 +478,31 @@ const EntryEditorPage: React.FC = () => {
                   <span>{countChars(formData.content ?? '').toLocaleString()} chars</span>
                 </div>
               )}
+
+              {/* Markdown Paste Badge — shown when markdown is detected on clipboard */}
+              {mdPasteDetected && (
+                <button
+                  type="button"
+                  onClick={handleManualMarkdownPaste}
+                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-violet-50 dark:bg-violet-950/60 border border-violet-300 dark:border-violet-700 text-violet-700 dark:text-violet-300 text-[11px] font-bold hover:bg-violet-100 dark:hover:bg-violet-900/60 transition-colors animate-pulse"
+                  title="Click to paste clipboard content as formatted markdown"
+                >
+                  <ClipboardList className="w-3.5 h-3.5" />
+                  <span>Markdown detected — Paste formatted</span>
+                </button>
+              )}
+
+              {/* Manual Paste Markdown button (always visible) */}
+              <button
+                type="button"
+                onClick={handleManualMarkdownPaste}
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 text-[11px] font-bold hover:bg-violet-50 dark:hover:bg-violet-950/50 hover:border-violet-300 dark:hover:border-violet-700 hover:text-violet-700 dark:hover:text-violet-300 transition-colors"
+                title="Convert clipboard markdown to formatted rich text"
+              >
+                <ClipboardList className="w-3.5 h-3.5" />
+                <span>Paste Markdown</span>
+              </button>
+
               {/* Fullscreen toggle */}
               <button
                 type="button"
@@ -393,11 +516,14 @@ const EntryEditorPage: React.FC = () => {
           </div>
 
           {/* Editor container — gets fullscreen class when active */}
-          <div className={`rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-700 shadow-inner transition-all ${
-            isFullscreen
-              ? 'quill-fullscreen fixed inset-4 z-[200] shadow-2xl rounded-2xl border'
-              : 'bg-white dark:bg-slate-850'
-          }`}>
+          <div
+            className={`rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-700 shadow-inner transition-all ${
+              isFullscreen
+                ? 'quill-fullscreen fixed inset-4 z-[200] shadow-2xl rounded-2xl border'
+                : 'bg-white dark:bg-slate-850'
+            }`}
+            onPaste={handleEditorPaste}
+          >
             {/* Fullscreen escape hint */}
             {isFullscreen && (
               <div className="flex items-center justify-between px-4 py-2.5 bg-slate-900 border-b border-slate-700">
@@ -423,21 +549,28 @@ const EntryEditorPage: React.FC = () => {
               </div>
             )}
             <ReactQuill
+              ref={quillRef}
               theme="snow"
               value={formData.content}
               onChange={(val) => updateForm({ content: val })}
               modules={quillModules}
-              placeholder="Write out your concepts, code examples, diagrams, or architectural takeaways..."
+              placeholder="Write out your concepts, code examples, diagrams, or architectural takeaways... (supports pasting Markdown)"
               className={`dark:text-slate-100 ${isFullscreen ? 'quill-fullscreen' : ''}`}
+              onFocus={handleEditorFocus}
             />
           </div>
 
-          {/* Keyboard tip */}
-          <p className="text-[11px] text-slate-400 dark:text-slate-500 flex items-center gap-1.5">
+          {/* Keyboard & Markdown tip */}
+          <p className="text-[11px] text-slate-400 dark:text-slate-500 flex flex-wrap items-center gap-1.5">
+            <ClipboardList className="w-3 h-3" />
+            <span className="font-semibold text-violet-600 dark:text-violet-400">Supports Markdown paste</span>
+            <span className="opacity-40">·</span>
             <span className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 font-mono border border-slate-200 dark:border-slate-700">Ctrl+`</span>
-            <span>to insert code block ·</span>
+            <span>code block</span>
+            <span className="opacity-40">·</span>
             <span className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 font-mono border border-slate-200 dark:border-slate-700">Ctrl+B</span>
-            <span>bold ·</span>
+            <span>bold</span>
+            <span className="opacity-40">·</span>
             <span className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 font-mono border border-slate-200 dark:border-slate-700">Ctrl+K</span>
             <span>link</span>
           </p>
