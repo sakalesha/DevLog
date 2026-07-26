@@ -11,8 +11,57 @@
 
 import React, { useEffect, useRef } from 'react';
 import hljs from 'highlight.js';
+import { marked } from 'marked';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
+
+/**
+ * Automatically detect if content in the database was stored as raw Markdown
+ * (or if Quill wrapped raw markdown lines like <p># Title</p> or <p>- Item</p>),
+ * and convert it to HTML via marked before rendering.
+ */
+function normalizeContent(raw: string): string {
+  if (!raw) return '';
+
+  // Check if it looks like raw markdown or has unparsed markdown headers/lists/blockquotes
+  const hasUnparsedMarkdown = (
+    /^(?:<p>)?\s*#{1,6}\s+.+/m.test(raw) ||
+    /^(?:<p>)?\s*[-*+]\s+.+/m.test(raw) ||
+    /^(?:<p>)?\s*>\s+.+/m.test(raw) ||
+    /^(?:<p>)?\s*\d+\.\s+.+/m.test(raw) ||
+    /```[\s\S]*?```/.test(raw)
+  );
+
+  if (hasUnparsedMarkdown) {
+    // Clean up Quill's <p> wrapping if present so marked can parse markdown blocks cleanly
+    const cleaned = raw
+      .replace(/<p>\s*(#{1,6}\s+.+?)\s*<\/p>/gi, '$1\n\n')
+      .replace(/<p>\s*([-*+]\s+.+?)\s*<\/p>/gi, '$1\n')
+      .replace(/<p>\s*(\d+\.\s+.+?)\s*<\/p>/gi, '$1\n')
+      .replace(/<p>\s*(>\s+.+?)\s*<\/p>/gi, '$1\n\n')
+      .replace(/<p>\s*(```[\s\S]*?```)\s*<\/p>/gi, '$1\n\n')
+      .replace(/<p>\s*(---.*?)\s*<\/p>/gi, '$1\n\n');
+
+    marked.setOptions({ gfm: true, breaks: true });
+    let parsed = marked.parse(cleaned) as string;
+
+    // Convert GitHub alerts [!IMPORTANT], [!NOTE], etc. inside blockquotes
+    parsed = parsed.replace(/<blockquote>\s*<p>\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\](?:<br>|\s*)/gi, (match, type) => {
+      const colors: Record<string, string> = {
+        NOTE: '#3b82f6',
+        TIP: '#10b981',
+        IMPORTANT: '#f59e0b',
+        WARNING: '#f97316',
+        CAUTION: '#ef4444'
+      };
+      const color = colors[type.toUpperCase()] || '#6366f1';
+      return `<blockquote style="border-left: 4px solid ${color}; padding: 1rem; margin: 1.5rem 0; background: rgba(100, 116, 139, 0.08); border-radius: 0.5rem;"><p><strong style="color: ${color}; font-size: 0.85em; text-transform: uppercase; letter-spacing: 0.05em;">${type.toUpperCase()}:</strong><br>`;
+    });
+    return parsed;
+  }
+
+  return raw;
+}
 
 /** Enrich heading elements with scroll-margin IDs for ToC anchors */
 function assignHeadingIds(container: HTMLElement) {
@@ -140,6 +189,7 @@ interface RichContentViewerProps {
 const RichContentViewer: React.FC<RichContentViewerProps> = ({ html, containerRef }) => {
   const localRef = useRef<HTMLDivElement>(null);
   const ref = containerRef || localRef;
+  const normalizedHtml = normalizeContent(html);
 
   useEffect(() => {
     if (!ref.current) return;
@@ -153,7 +203,7 @@ const RichContentViewer: React.FC<RichContentViewerProps> = ({ html, containerRe
     preBlocks.forEach(highlightBlock);
 
     // 3. Also catch inline <code> not inside <pre> — just style, don't highlight
-  }, [html, ref]);
+  }, [normalizedHtml, ref]);
 
   return (
     <div
@@ -212,7 +262,7 @@ const RichContentViewer: React.FC<RichContentViewerProps> = ({ html, containerRe
 
         [&_pre]:!bg-transparent [&_pre]:!p-0 [&_pre]:!border-0 [&_pre]:!rounded-none [&_pre]:!overflow-visible [&_pre]:!my-8
       "
-      dangerouslySetInnerHTML={{ __html: html }}
+      dangerouslySetInnerHTML={{ __html: normalizedHtml }}
     />
   );
 };

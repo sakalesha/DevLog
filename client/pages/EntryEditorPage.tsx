@@ -44,7 +44,7 @@ const quillModules = {
     [{ header: [1, 2, 3, false] }],
     ['bold', 'italic', 'underline', 'strike'],
     [{ list: 'ordered' }, { list: 'bullet' }, { indent: '-1' }, { indent: '+1' }],
-    ['code-block', 'blockquote', 'link'],
+    ['code', 'code-block', 'blockquote', 'link'],
     [{ color: [] }, { background: [] }],
     ['clean'],
   ],
@@ -201,6 +201,33 @@ const EntryEditorPage: React.FC = () => {
       // clipboard permission not granted — silently ignore
     }
   }, []);
+
+  // Attach native capture-phase paste listener directly to Quill's contenteditable root
+  // This ensures we intercept Ctrl+V BEFORE Quill's internal HTML/text clipboard matcher runs!
+  useEffect(() => {
+    const editor = quillRef.current?.getEditor();
+    const root = editor?.root;
+    if (!root) return;
+
+    const nativePasteHandler = async (e: ClipboardEvent) => {
+      const text = e.clipboardData?.getData('text/plain');
+      if (!text || !looksLikeMarkdown(text)) return;
+
+      e.preventDefault();
+      e.stopPropagation();
+
+      const convertedHtml = await markdownToHtml(text);
+      const range = editor.getSelection(true);
+      editor.clipboard.dangerouslyPasteHTML(range?.index ?? 0, convertedHtml);
+      toast('Markdown detected & formatted automatically! 🎉', 'success', 3500);
+      setMdPasteDetected(false);
+    };
+
+    root.addEventListener('paste', nativePasteHandler, { capture: true });
+    return () => {
+      root.removeEventListener('paste', nativePasteHandler, { capture: true });
+    };
+  }, [toast]);
 
   // ─── Data Loading ──────────────────────────────────────────────────────────
 
