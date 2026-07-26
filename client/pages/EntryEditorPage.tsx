@@ -82,7 +82,22 @@ function looksLikeMarkdown(text: string): boolean {
 /** Convert markdown text to HTML via marked and sanitise for Quill */
 async function markdownToHtml(md: string): Promise<string> {
   marked.setOptions({ gfm: true, breaks: true });
-  return await marked(md) as string;
+  let html = await marked(md) as string;
+
+  // Enhance GitHub-style alerts: > [!IMPORTANT], > [!NOTE], etc. inside blockquotes
+  html = html.replace(/<blockquote>\s*<p>\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\](?:<br>|\s*)/gi, (match, type) => {
+    const colors: Record<string, string> = {
+      NOTE: '#3b82f6',
+      TIP: '#10b981',
+      IMPORTANT: '#f59e0b',
+      WARNING: '#f97316',
+      CAUTION: '#ef4444'
+    };
+    const color = colors[type.toUpperCase()] || '#6366f1';
+    return `<blockquote style="border-left: 4px solid ${color}; padding: 1rem; margin: 1.5rem 0; background: rgba(100, 116, 139, 0.08); border-radius: 0.5rem;"><p><strong style="color: ${color}; font-size: 0.85em; text-transform: uppercase; letter-spacing: 0.05em;">${type.toUpperCase()}:</strong><br>`;
+  });
+
+  return html;
 }
 
 // ─── Component ─────────────────────────────────────────────────────────────────
@@ -132,10 +147,7 @@ const EntryEditorPage: React.FC = () => {
    */
   const handleEditorPaste = useCallback(async (e: React.ClipboardEvent<HTMLDivElement>) => {
     const text = e.clipboardData.getData('text/plain');
-    const html = e.clipboardData.getData('text/html');
 
-    // If the clipboard already carries HTML (e.g. from another rich editor), let Quill handle it
-    if (html && html.trim()) return;
     // If it doesn't look like markdown, let Quill handle it normally
     if (!text || !looksLikeMarkdown(text)) return;
 
