@@ -1,22 +1,7 @@
 import { Category, CategoryTreeNode } from '../types';
-import { API_URL } from '../constants';
+import { apiClient } from './apiClient';
 
-const getHeaders = () => {
-  const userStr = localStorage.getItem('user');
-  let token = '';
-  if (userStr) {
-    try {
-      const user = JSON.parse(userStr);
-      token = user.token;
-    } catch (e) {
-      console.error('Error parsing user token', e);
-    }
-  }
-  return {
-    'Content-Type': 'application/json',
-    'Authorization': `Bearer ${token}`
-  };
-};
+// ─── Tree Utilities ────────────────────────────────────────────────────────────
 
 export const buildCategoryTree = (categories: Category[]): CategoryTreeNode[] => {
   const map = new Map<string, CategoryTreeNode>();
@@ -53,40 +38,18 @@ export const getCategoryPath = (categories: Category[], targetId?: string): stri
   return path;
 };
 
+// ─── Service ──────────────────────────────────────────────────────────────────
+
 export const categoryService = {
-  getCategories: async (): Promise<Category[]> => {
-    const response = await fetch(`${API_URL}/categories`, {
-      headers: getHeaders()
-    });
-    if (!response.ok) throw new Error('Failed to fetch categories');
-    return response.json();
-  },
+  getCategories: (): Promise<Category[]> =>
+    apiClient.get<Category[]>('/categories'),
 
-  createCategory: async (categoryData: Partial<Category>): Promise<Category> => {
-    const response = await fetch(`${API_URL}/categories`, {
-      method: 'POST',
-      headers: getHeaders(),
-      body: JSON.stringify(categoryData),
-    });
-    if (!response.ok) throw new Error('Failed to create category');
-    return response.json();
-  },
+  createCategory: (categoryData: Partial<Category>): Promise<Category> =>
+    apiClient.post<Category>('/categories', categoryData),
 
-  updateCategory: async (id: string, categoryData: Partial<Category>): Promise<Category> => {
-    const response = await fetch(`${API_URL}/categories/${id}`, {
-      method: 'PUT',
-      headers: getHeaders(),
-      body: JSON.stringify(categoryData),
-    });
-    if (!response.ok) throw new Error('Failed to update category');
-    return response.json();
-  },
+  updateCategory: (id: string, categoryData: Partial<Category>): Promise<Category> =>
+    apiClient.put<Category>(`/categories/${id}`, categoryData),
 
-  deleteCategory: async (id: string): Promise<void> => {
-    const response = await fetch(`${API_URL}/categories/${id}`, {
-      method: 'DELETE',
-      headers: getHeaders()
-    });
-    if (!response.ok) throw new Error('Failed to delete category');
-  }
+  deleteCategory: (id: string): Promise<void> =>
+    apiClient.delete(`/categories/${id}`),
 };

@@ -9,12 +9,13 @@ export interface ILearningEntry extends Document {
     categoryPath?: string[];
     content: string;
     keyTakeaway: string;
+    doubts?: string;
     timeSpent: {
         amount: number;
         unit: 'minutes' | 'hours';
     };
     tags: string[];
-    status: 'draft' | 'published';
+    status: 'draft' | 'published' | 'archived';
     views: number;
     createdAt: Date;
     updatedAt: Date;
@@ -34,6 +35,7 @@ const LearningEntrySchema: Schema = new Schema(
         categoryPath: [{ type: String }],
         content: { type: String, required: true }, // Rich text HTML
         keyTakeaway: { type: String, required: true },
+        doubts: { type: String, default: '' },
         timeSpent: {
             amount: { type: Number, required: true },
             unit: { type: String, required: true, enum: ['minutes', 'hours'] },
@@ -42,7 +44,7 @@ const LearningEntrySchema: Schema = new Schema(
         status: {
             type: String,
             required: true,
-            enum: ['draft', 'published'],
+            enum: ['draft', 'published', 'archived'],
             default: 'published',
         },
         views: { type: Number, default: 0 },

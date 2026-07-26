@@ -1,69 +1,23 @@
 import { LearningEntry, UserStats } from '../types';
-import { API_URL } from '../constants';
-
-const getHeaders = () => {
-  const userStr = localStorage.getItem('user');
-  let token = '';
-  if (userStr) {
-    try {
-      const user = JSON.parse(userStr);
-      token = user.token;
-    } catch (e) {
-      console.error('Error parsing user token', e);
-    }
-  }
-  return {
-    'Content-Type': 'application/json',
-    'Authorization': `Bearer ${token}`
-  };
-};
+import { apiClient } from './apiClient';
 
 export const entryService = {
-  getEntries: async (): Promise<LearningEntry[]> => {
-    const response = await fetch(`${API_URL}/entries`, {
-      headers: getHeaders()
-    });
-    if (!response.ok) throw new Error('Failed to fetch entries');
-    return response.json();
+  getEntries: (): Promise<LearningEntry[]> =>
+    apiClient.get<LearningEntry[]>('/entries'),
+
+  getEntryById: (id: string): Promise<LearningEntry | null> =>
+    apiClient.get<LearningEntry>(`/entries/${id}`).catch(() => null),
+
+  saveEntry: (entryData: Partial<LearningEntry>): Promise<LearningEntry> => {
+    if (entryData._id) {
+      return apiClient.put<LearningEntry>(`/entries/${entryData._id}`, entryData);
+    }
+    return apiClient.post<LearningEntry>('/entries', entryData);
   },
 
-  getEntryById: async (id: string): Promise<LearningEntry | null> => {
-    const response = await fetch(`${API_URL}/entries/${id}`, {
-      headers: getHeaders()
-    });
-    if (!response.ok) return null;
-    return response.json();
-  },
+  deleteEntry: (id: string): Promise<void> =>
+    apiClient.delete(`/entries/${id}`),
 
-  saveEntry: async (entryData: Partial<LearningEntry>): Promise<LearningEntry> => {
-    const method = entryData._id ? 'PUT' : 'POST';
-    const url = entryData._id
-      ? `${API_URL}/entries/${entryData._id}`
-      : `${API_URL}/entries`;
-
-    const response = await fetch(url, {
-      method,
-      headers: getHeaders(),
-      body: JSON.stringify(entryData),
-    });
-
-    if (!response.ok) throw new Error('Failed to save entry');
-    return response.json();
-  },
-
-  deleteEntry: async (id: string): Promise<void> => {
-    const response = await fetch(`${API_URL}/entries/${id}`, {
-      method: 'DELETE',
-      headers: getHeaders()
-    });
-    if (!response.ok) throw new Error('Failed to delete entry');
-  },
-
-  getStats: async (): Promise<UserStats> => {
-    const response = await fetch(`${API_URL}/entries/stats`, {
-      headers: getHeaders()
-    });
-    if (!response.ok) throw new Error('Failed to fetch stats');
-    return response.json();
-  }
+  getStats: (): Promise<UserStats> =>
+    apiClient.get<UserStats>('/entries/stats'),
 };

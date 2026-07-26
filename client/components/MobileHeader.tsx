@@ -37,7 +37,7 @@ export const MobileHeader: React.FC = () => {
                                 to={item.path}
                                 className={`p-2 rounded-lg transition-all ${isActive ? 'bg-white dark:bg-slate-700 shadow-sm text-primary-600 dark:text-primary-400' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'}`}
                             >
-                                {React.cloneElement(item.icon as React.ReactElement, { className: "w-5 h-5" })}
+                                {React.cloneElement(item.icon as React.ReactElement<{ className?: string }>, { className: "w-5 h-5" })}
                             </Link>
                         );
                     })}

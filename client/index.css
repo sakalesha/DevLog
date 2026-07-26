@@ -25,3 +25,57 @@
     @apply bg-clip-text text-transparent bg-gradient-to-r from-primary-600 to-indigo-500;
   }
 }
+
+/* ─── Copy Code Button (injected into pre elements by EntryDetailPage) ──────── */
+.copy-code-btn {
+  position: absolute;
+  top: 0.6rem;
+  right: 0.6rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.25rem 0.6rem;
+  border-radius: 0.4rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  z-index: 10;
+  letter-spacing: 0.02em;
+  user-select: none;
+}
+.copy-code-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+}
+
+/* ─── Quill dark mode fixes ─────────────────────────────────────────────────── */
+.dark .ql-toolbar {
+  border-color: rgb(51 65 85) !important;
+  background: rgb(15 23 42 / 0.5);
+}
+.dark .ql-container {
+  border-color: rgb(51 65 85) !important;
+}
+.dark .ql-editor {
+  color: rgb(226 232 240);
+}
+.dark .ql-editor.ql-blank::before {
+  color: rgb(100 116 139);
+}
+.dark .ql-stroke {
+  stroke: rgb(148 163 184) !important;
+}
+.dark .ql-fill {
+  fill: rgb(148 163 184) !important;
+}
+.dark .ql-picker {
+  color: rgb(148 163 184) !important;
+}
+.dark .ql-picker-options {
+  background: rgb(30 41 59) !important;
+  border-color: rgb(51 65 85) !important;
+}

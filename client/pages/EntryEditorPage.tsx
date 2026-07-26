@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import ReactQuill from 'react-quill-new';
 import {
@@ -9,34 +9,57 @@ import {
   Clock,
   Tags,
   MessageCircle,
-  AlertCircle,
   CheckCircle2,
   X,
   BookOpen,
   Calendar,
-  Lightbulb
+  Lightbulb,
+  FileText,
+  Send,
+  RotateCcw,
+  AlertCircle
 } from 'lucide-react';
 import { entryService } from '../services/entryService';
 import { geminiService } from '../services/geminiService';
 import { categoryService, getCategoryPath } from '../services/categoryService';
 import { Category, LearningEntry } from '../types';
 import { CategoryTreeSelector } from '../components/categories/CategoryTreeSelector';
+import { ToastContainer } from '../components/ui/Toast';
+import { useToast } from '../hooks/useToast';
 
-interface Toast {
-  message: string;
-  type: 'success' | 'error';
-}
+// ─── Constants ─────────────────────────────────────────────────────────────────
+
+const DRAFT_KEY = 'devlog_draft';
+const AUTOSAVE_DEBOUNCE_MS = 1500;
+
+// ─── Quill Config ──────────────────────────────────────────────────────────────
+
+const quillModules = {
+  toolbar: [
+    [{ header: [1, 2, 3, false] }],
+    ['bold', 'italic', 'underline', 'strike'],
+    [{ list: 'ordered' }, { list: 'bullet' }],
+    ['code-block', 'blockquote', 'link'],
+    ['clean'],
+  ],
+};
+
+// ─── Component ─────────────────────────────────────────────────────────────────
 
 const EntryEditorPage: React.FC = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
+  const isEditing = Boolean(id);
+
+  const { toasts, toast, dismissToast } = useToast();
+
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(false);
   const [aiLoading, setAiLoading] = useState(false);
-  const [toast, setToast] = useState<Toast | null>(null);
-  const [suggestions, setSuggestions] = useState<string[]>([]);
   const [suggLoading, setSuggLoading] = useState(false);
+  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [hasDraftRestore, setHasDraftRestore] = useState(false);
 
   const [formData, setFormData] = useState<Partial<LearningEntry>>({
     topic: '',
@@ -53,6 +76,9 @@ const EntryEditorPage: React.FC = () => {
   });
 
   const [tagInput, setTagInput] = useState('');
+  const autosaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // ─── Data Loading ──────────────────────────────────────────────────────────
 
   useEffect(() => {
     const fetchData = async () => {
@@ -64,7 +90,7 @@ const EntryEditorPage: React.FC = () => {
           const entry = await entryService.getEntryById(id);
           if (entry) {
             setFormData(entry);
-            return;
+            return; // editing — skip draft restore
           }
         } else {
           // Check for categoryId in query params
@@ -77,36 +103,75 @@ const EntryEditorPage: React.FC = () => {
               setFormData(prev => ({ ...prev, categoryId: queryCatId, category: cat.name, categoryPath: path }));
             }
           }
+
+          // Check for a saved draft
+          const savedDraft = localStorage.getItem(DRAFT_KEY);
+          if (savedDraft) {
+            setHasDraftRestore(true);
+          }
         }
       } catch (err) {
         console.error('Failed to load editor data', err);
+        toast('Failed to load data. Please refresh.', 'error');
       }
     };
     fetchData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, location.search]);
 
-  useEffect(() => {
-    if (toast) {
-      const timer = setTimeout(() => setToast(null), 3000);
-      return () => clearTimeout(timer);
+  // ─── Autosave to localStorage ──────────────────────────────────────────────
+
+  const scheduleAutosave = useCallback((data: Partial<LearningEntry>) => {
+    if (isEditing) return; // only autosave new entries
+    if (autosaveTimer.current) clearTimeout(autosaveTimer.current);
+    autosaveTimer.current = setTimeout(() => {
+      try {
+        localStorage.setItem(DRAFT_KEY, JSON.stringify(data));
+      } catch { /* storage full — ignore */ }
+    }, AUTOSAVE_DEBOUNCE_MS);
+  }, [isEditing]);
+
+  const updateForm = useCallback((update: Partial<LearningEntry>) => {
+    setFormData(prev => {
+      const next = { ...prev, ...update };
+      scheduleAutosave(next);
+      return next;
+    });
+  }, [scheduleAutosave]);
+
+  const restoreDraft = () => {
+    try {
+      const saved = localStorage.getItem(DRAFT_KEY);
+      if (saved) {
+        setFormData(JSON.parse(saved));
+        setHasDraftRestore(false);
+        toast('Draft restored!', 'success');
+      }
+    } catch {
+      toast('Could not restore draft.', 'error');
     }
-  }, [toast]);
+  };
+
+  const discardDraft = () => {
+    localStorage.removeItem(DRAFT_KEY);
+    setHasDraftRestore(false);
+  };
+
+  // ─── AI ───────────────────────────────────────────────────────────────────
 
   const handleAiGenerate = async () => {
     const plainText = formData.content?.replace(/<[^>]*>?/gm, '').trim() || '';
-
     if (plainText.length < 30) {
-      setToast({ message: "Content too short for AI analysis (min 30 chars).", type: 'error' });
+      toast('Content too short for AI analysis (min 30 chars).', 'error');
       return;
     }
-
     setAiLoading(true);
     try {
       const takeaway = await geminiService.generateKeyTakeaway(plainText);
-      setFormData(prev => ({ ...prev, keyTakeaway: takeaway }));
-      setToast({ message: "Key takeaway generated by Gemini AI!", type: 'success' });
-    } catch (err) {
-      setToast({ message: "AI generation failed.", type: 'error' });
+      updateForm({ keyTakeaway: takeaway });
+      toast('Key takeaway generated by Gemini AI!', 'success');
+    } catch {
+      toast('AI generation failed. Please try again.', 'error');
     } finally {
       setAiLoading(false);
     }
@@ -114,7 +179,7 @@ const EntryEditorPage: React.FC = () => {
 
   const handleGetSuggestions = async () => {
     if (!formData.topic) {
-      setToast({ message: "Please enter a topic first.", type: 'error' });
+      toast('Please enter a topic first.', 'error');
       return;
     }
     setSuggLoading(true);
@@ -122,78 +187,75 @@ const EntryEditorPage: React.FC = () => {
       const suggs = await geminiService.getLearningSuggestions(
         formData.topic,
         formData.category || 'General',
-        formData.categoryPath
+        formData.categoryPath,
       );
       setSuggestions(suggs);
-    } catch (err) {
-      setSuggestions(["System Design Patterns", "Concurrency in Depth", "Advanced Testing"]);
+    } catch {
+      setSuggestions(['System Design Patterns', 'Concurrency in Depth', 'Advanced Testing']);
     } finally {
       setSuggLoading(false);
     }
   };
 
+  // ─── Tags ──────────────────────────────────────────────────────────────────
+
   const handleAddTag = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && tagInput.trim()) {
       e.preventDefault();
       if (!formData.tags?.includes(tagInput.trim())) {
-        setFormData(prev => ({ ...prev, tags: [...(prev.tags || []), tagInput.trim()] }));
+        updateForm({ tags: [...(formData.tags || []), tagInput.trim()] });
       }
       setTagInput('');
     }
   };
 
   const removeTag = (tagToRemove: string) => {
-    setFormData(prev => ({ ...prev, tags: prev.tags?.filter(t => t !== tagToRemove) }));
+    updateForm({ tags: formData.tags?.filter(t => t !== tagToRemove) });
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!formData.topic || !formData.content || !formData.keyTakeaway) {
-      setToast({ message: "Please fill in all required fields (Topic, Content, Takeaway).", type: 'error' });
+  // ─── Submit ────────────────────────────────────────────────────────────────
+
+  const validateForm = (): string | null => {
+    if (!formData.topic?.trim()) return 'Topic is required.';
+    if (!formData.content?.replace(/<[^>]*>?/gm, '').trim()) return 'Content cannot be empty.';
+    if (!formData.keyTakeaway?.trim()) return 'A key takeaway is required.';
+    return null;
+  };
+
+  const handleSubmit = async (targetStatus: 'published' | 'draft') => {
+    const validationError = validateForm();
+    if (validationError) {
+      toast(validationError, 'error');
       return;
     }
+
     setLoading(true);
     try {
-      await entryService.saveEntry(formData);
-      setToast({ message: id ? "Entry updated successfully!" : "New learning log recorded!", type: 'success' });
-      setTimeout(() => {
-        navigate('/');
-      }, 1200);
-    } catch (err) {
-      setToast({ message: "Failed to save entry. Please try again.", type: 'error' });
+      const payload = { ...formData, status: targetStatus };
+      const saved = await entryService.saveEntry(payload);
+
+      // Clear the autosave draft on successful save
+      localStorage.removeItem(DRAFT_KEY);
+
+      if (targetStatus === 'published') {
+        // Go to the detail page with a success banner
+        navigate(`/entries/${saved._id}?published=true`);
+      } else {
+        toast('Draft saved successfully.', 'success');
+        // Stay on the editor for drafts so the user can keep working
+      }
+    } catch (err: any) {
+      toast(err?.message || 'Failed to save. Please try again.', 'error');
     } finally {
       setLoading(false);
     }
   };
 
-  const quillModules = {
-    toolbar: [
-      [{ 'header': [1, 2, 3, false] }],
-      ['bold', 'italic', 'underline', 'strike'],
-      [{ 'list': 'ordered' }, { 'list': 'bullet' }],
-      ['code-block', 'blockquote'],
-      ['clean']
-    ],
-  };
+  // ─── Render ────────────────────────────────────────────────────────────────
 
   return (
     <div className="max-w-4xl mx-auto pb-16 relative animate-fade-in">
-      {/* Toast Notification */}
-      {toast && (
-        <div
-          className={`fixed top-6 right-6 z-[100] flex items-center gap-3 px-5 py-3.5 rounded-2xl shadow-2xl animate-in slide-in-from-right-10 duration-300 border backdrop-blur-md ${
-            toast.type === 'success'
-              ? 'bg-emerald-600/95 text-white border-emerald-500 shadow-emerald-600/20'
-              : 'bg-red-600/95 text-white border-red-500 shadow-red-600/20'
-          }`}
-        >
-          {toast.type === 'success' ? <CheckCircle2 className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
-          <p className="font-bold text-sm">{toast.message}</p>
-          <button onClick={() => setToast(null)} className="ml-2 opacity-70 hover:opacity-100 transition-opacity">
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-      )}
+      <ToastContainer toasts={toasts} onDismiss={dismissToast} />
 
       {/* Header Bar */}
       <div className="flex items-center justify-between mb-6">
@@ -207,14 +269,41 @@ const EntryEditorPage: React.FC = () => {
         <div className="flex items-center gap-2">
           <span className="text-xs font-bold px-3 py-1.5 rounded-full bg-primary-100 dark:bg-primary-950/80 text-primary-700 dark:text-primary-300 border border-primary-200/50 dark:border-primary-800/50 flex items-center gap-1.5">
             <BookOpen className="w-3.5 h-3.5" />
-            <span>{id ? 'Editing Log' : 'New Learning Entry'}</span>
+            <span>{isEditing ? 'Editing Log' : 'New Learning Entry'}</span>
           </span>
         </div>
       </div>
 
+      {/* Draft Restore Banner */}
+      {hasDraftRestore && !isEditing && (
+        <div className="mb-4 flex items-center justify-between gap-3 p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 shadow-sm animate-fade-in">
+          <div className="flex items-center gap-2.5">
+            <RotateCcw className="w-4 h-4 text-amber-600 dark:text-amber-400 flex-shrink-0" />
+            <div>
+              <p className="text-sm font-bold text-amber-900 dark:text-amber-200">You have an unsaved draft</p>
+              <p className="text-xs text-amber-700 dark:text-amber-400">Would you like to restore your previous writing session?</p>
+            </div>
+          </div>
+          <div className="flex gap-2 flex-shrink-0">
+            <button
+              onClick={restoreDraft}
+              className="px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold transition-colors"
+            >
+              Restore
+            </button>
+            <button
+              onClick={discardDraft}
+              className="px-3 py-1.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 text-xs font-bold hover:bg-slate-50 transition-colors"
+            >
+              Discard
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Main Studio Card */}
-      <form onSubmit={handleSubmit} className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border border-white/60 dark:border-white/10 rounded-3xl p-6 md:p-8 shadow-xl space-y-6">
-        
+      <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border border-white/60 dark:border-white/10 rounded-3xl p-6 md:p-8 shadow-xl space-y-6">
+
         {/* Topic Title & Date */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="md:col-span-2 space-y-1.5">
@@ -226,7 +315,7 @@ const EntryEditorPage: React.FC = () => {
               required
               placeholder="e.g. Mastered React 19 Action Hooks & Concurrent State..."
               value={formData.topic}
-              onChange={(e) => setFormData(prev => ({ ...prev, topic: e.target.value }))}
+              onChange={(e) => updateForm({ topic: e.target.value })}
               className="w-full px-4 py-3 rounded-2xl bg-white dark:bg-slate-850 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-bold text-lg placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-primary-500/50 shadow-sm transition-all"
             />
           </div>
@@ -239,7 +328,7 @@ const EntryEditorPage: React.FC = () => {
               type="date"
               required
               value={formData.date}
-              onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
+              onChange={(e) => updateForm({ date: e.target.value })}
               className="w-full px-4 py-3 rounded-2xl bg-white dark:bg-slate-850 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 font-semibold focus:outline-none focus:ring-2 focus:ring-primary-500/50 shadow-sm"
             />
           </div>
@@ -251,12 +340,7 @@ const EntryEditorPage: React.FC = () => {
             categories={categories}
             selectedCategoryId={formData.categoryId}
             onSelect={(catId, catName, path) => {
-              setFormData(prev => ({
-                ...prev,
-                categoryId: catId,
-                category: catName,
-                categoryPath: path,
-              }));
+              updateForm({ categoryId: catId, category: catName, categoryPath: path });
             }}
             onCategoryCreated={(newCat) => {
               setCategories(prev => [...prev, newCat]);
@@ -270,13 +354,13 @@ const EntryEditorPage: React.FC = () => {
             <label className="block text-sm font-bold text-slate-700 dark:text-slate-200">
               Detailed Learning Notes & Code Snippets *
             </label>
-            <span className="text-xs text-slate-400 dark:text-slate-500">Markdown & syntax highlighted</span>
+            <span className="text-xs text-slate-400 dark:text-slate-500">Rich text · Code blocks · Links</span>
           </div>
           <div className="bg-white dark:bg-slate-850 rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-700 shadow-inner">
             <ReactQuill
               theme="snow"
               value={formData.content}
-              onChange={(val) => setFormData(prev => ({ ...prev, content: val }))}
+              onChange={(val) => updateForm({ content: val })}
               modules={quillModules}
               placeholder="Write out your concepts, code examples, diagrams, or architectural takeaways..."
               className="dark:text-slate-100"
@@ -306,7 +390,7 @@ const EntryEditorPage: React.FC = () => {
             rows={2}
             placeholder="In 1-2 sentences, what is the single most important concept or golden rule you learned?"
             value={formData.keyTakeaway}
-            onChange={(e) => setFormData(prev => ({ ...prev, keyTakeaway: e.target.value }))}
+            onChange={(e) => updateForm({ keyTakeaway: e.target.value })}
             className="w-full p-3 rounded-xl bg-white dark:bg-slate-900 border border-amber-200 dark:border-amber-800/60 text-slate-900 dark:text-slate-100 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-amber-500/50 shadow-sm"
           />
         </div>
@@ -322,7 +406,7 @@ const EntryEditorPage: React.FC = () => {
               type="text"
               placeholder="What still feels unclear or needs exploration?"
               value={formData.doubts}
-              onChange={(e) => setFormData(prev => ({ ...prev, doubts: e.target.value }))}
+              onChange={(e) => updateForm({ doubts: e.target.value })}
               className="w-full px-4 py-3 rounded-2xl bg-white dark:bg-slate-850 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary-500/50 shadow-sm"
             />
           </div>
@@ -337,18 +421,12 @@ const EntryEditorPage: React.FC = () => {
                 min="1"
                 required
                 value={formData.timeSpent?.amount || 0}
-                onChange={(e) => setFormData(prev => ({
-                  ...prev,
-                  timeSpent: { ...prev.timeSpent!, amount: parseInt(e.target.value) || 0 }
-                }))}
+                onChange={(e) => updateForm({ timeSpent: { ...formData.timeSpent!, amount: parseInt(e.target.value) || 0 } })}
                 className="w-28 px-4 py-3 rounded-2xl bg-white dark:bg-slate-850 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-bold text-center focus:outline-none focus:ring-2 focus:ring-primary-500/50 shadow-sm"
               />
               <select
                 value={formData.timeSpent?.unit || 'minutes'}
-                onChange={(e: any) => setFormData(prev => ({
-                  ...prev,
-                  timeSpent: { ...prev.timeSpent!, unit: e.target.value }
-                }))}
+                onChange={(e: any) => updateForm({ timeSpent: { ...formData.timeSpent!, unit: e.target.value } })}
                 className="flex-1 px-4 py-3 rounded-2xl bg-white dark:bg-slate-850 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 font-semibold focus:outline-none focus:ring-2 focus:ring-primary-500/50 shadow-sm cursor-pointer"
               >
                 <option value="minutes">Minutes</option>
@@ -375,6 +453,7 @@ const EntryEditorPage: React.FC = () => {
                   type="button"
                   onClick={() => removeTag(tag)}
                   className="hover:text-red-500 transition-colors"
+                  aria-label={`Remove tag ${tag}`}
                 >
                   <X className="w-3.5 h-3.5" />
                 </button>
@@ -421,7 +500,7 @@ const EntryEditorPage: React.FC = () => {
                 <button
                   key={idx}
                   type="button"
-                  onClick={() => setFormData(prev => ({ ...prev, topic: sugg }))}
+                  onClick={() => updateForm({ topic: sugg })}
                   className="px-3 py-1.5 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 text-xs font-semibold border border-indigo-200/60 dark:border-indigo-800/60 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 transition-colors"
                 >
                   + {sugg}
@@ -432,25 +511,52 @@ const EntryEditorPage: React.FC = () => {
         )}
 
         {/* Submit Actions */}
-        <div className="pt-4 border-t border-slate-200/80 dark:border-slate-800 flex items-center justify-end gap-3">
-          <button
-            type="button"
-            onClick={() => navigate(-1)}
-            className="px-6 py-3 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold text-sm transition-colors"
-          >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            disabled={loading}
-            className="px-8 py-3 rounded-xl bg-gradient-to-r from-primary-600 to-amber-500 hover:from-primary-500 hover:to-amber-400 text-white font-bold text-sm shadow-lg shadow-primary-500/30 hover:shadow-primary-500/40 disabled:opacity-50 transition-all flex items-center gap-2"
-          >
-            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-            <span>{id ? 'Save Changes' : 'Publish Learning Log'}</span>
-          </button>
+        <div className="pt-4 border-t border-slate-200/80 dark:border-slate-800">
+
+          {/* Status info */}
+          <div className="flex items-start gap-2 mb-4 p-3 rounded-xl bg-slate-50 dark:bg-slate-850 border border-slate-200/60 dark:border-slate-800">
+            <AlertCircle className="w-4 h-4 text-slate-400 flex-shrink-0 mt-0.5" />
+            <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+              <strong className="text-slate-700 dark:text-slate-300">Publish</strong> makes this log visible in your journal.&nbsp;
+              <strong className="text-slate-700 dark:text-slate-300">Save Draft</strong> keeps it private so you can finish writing later.
+            </p>
+          </div>
+
+          <div className="flex items-center justify-end gap-3">
+            <button
+              type="button"
+              onClick={() => navigate(-1)}
+              className="px-6 py-3 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold text-sm transition-colors"
+            >
+              Cancel
+            </button>
+            {/* Save Draft */}
+            <button
+              type="button"
+              disabled={loading}
+              onClick={() => handleSubmit('draft')}
+              className="px-6 py-3 rounded-xl bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 font-bold text-sm shadow-sm disabled:opacity-50 transition-all flex items-center gap-2"
+            >
+              <FileText className="w-4 h-4" />
+              <span>Save Draft</span>
+            </button>
+            {/* Publish */}
+            <button
+              type="button"
+              disabled={loading}
+              onClick={() => handleSubmit('published')}
+              className="px-8 py-3 rounded-xl bg-gradient-to-r from-primary-600 to-amber-500 hover:from-primary-500 hover:to-amber-400 text-white font-bold text-sm shadow-lg shadow-primary-500/30 hover:shadow-primary-500/40 disabled:opacity-50 transition-all flex items-center gap-2"
+            >
+              {loading
+                ? <Loader2 className="w-4 h-4 animate-spin" />
+                : <Send className="w-4 h-4" />
+              }
+              <span>{isEditing ? 'Save & Publish' : 'Publish Log'}</span>
+            </button>
+          </div>
         </div>
 
-      </form>
+      </div>
     </div>
   );
 };
