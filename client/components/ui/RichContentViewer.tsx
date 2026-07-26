@@ -160,6 +160,7 @@ const RichContentViewer: React.FC<RichContentViewerProps> = ({ html, containerRe
       ref={ref as React.RefObject<HTMLDivElement>}
       className="
         rich-content-viewer
+        ql-editor
         max-w-[700px] mx-auto
         text-slate-800 dark:text-slate-200
         leading-[1.85] text-lg md:text-[1.15rem]

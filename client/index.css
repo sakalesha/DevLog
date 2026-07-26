@@ -225,3 +225,62 @@
   background: rgb(30 41 59) !important;
   border-color: rgb(51 65 85) !important;
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Universal List & Bullet Point Restoration
+   Ensures both standard HTML (ul/ol) and Quill deltas (li[data-list]) 
+   render beautiful bullet points and numbers in editor and reader.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* 1. Ensure ul and ol have proper indentation and margins */
+.rich-content-viewer ul,
+.ql-editor ul {
+  list-style-type: disc !important;
+  padding-left: 1.75rem !important;
+  margin: 1.25rem 0 !important;
+}
+
+.rich-content-viewer ol,
+.ql-editor ol {
+  list-style-type: decimal !important;
+  padding-left: 1.75rem !important;
+  margin: 1.25rem 0 !important;
+}
+
+/* 2. Quill exports bullets as <ol><li data-list="bullet"> — force disc markers! */
+.rich-content-viewer li[data-list="bullet"],
+.ql-editor li[data-list="bullet"],
+.rich-content-viewer ul li,
+.ql-editor ul li {
+  list-style-type: disc !important;
+  list-style-position: outside !important;
+}
+
+/* 3. Quill exports ordered lists as <ol><li data-list="ordered"> — force decimal markers! */
+.rich-content-viewer li[data-list="ordered"],
+.ql-editor li[data-list="ordered"],
+.rich-content-viewer ol li,
+.ql-editor ol li {
+  list-style-type: decimal !important;
+  list-style-position: outside !important;
+}
+
+/* 4. Hide Quill's redundant inline ql-ui span when using native list-style markers */
+.rich-content-viewer li > .ql-ui,
+.ql-editor li > .ql-ui {
+  display: none !important;
+}
+
+/* 5. Editorial spacing and custom marker styling for list items */
+.rich-content-viewer li,
+.ql-editor li {
+  margin: 0.5rem 0 !important;
+  line-height: 1.85 !important;
+  padding-left: 0.25rem !important;
+}
+
+.rich-content-viewer li::marker,
+.ql-editor li::marker {
+  color: #3b82f6 !important; /* Primary blue marker */
+  font-weight: 700 !important;
+}
