@@ -183,6 +183,25 @@
   font-size: 1rem !important;
   line-height: 1.75 !important;
 }
+
+/* ── Ensure consecutive spaces and whitespace formatting never vanish in reader ── */
+.rich-content-viewer,
+.rich-content-viewer p,
+.rich-content-viewer li,
+.rich-content-viewer span,
+.rich-content-viewer td,
+.rich-content-viewer th,
+.rich-content-viewer blockquote,
+.ql-editor,
+.ql-editor p,
+.ql-editor li,
+.ql-editor span,
+.ql-editor td,
+.ql-editor th,
+.ql-editor blockquote {
+  white-space: pre-wrap !important;
+  word-break: break-word;
+}
 .quill-fullscreen .ql-editor {
   min-height: calc(100vh - 180px) !important;
 }
