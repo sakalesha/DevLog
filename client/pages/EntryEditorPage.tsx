@@ -22,7 +22,10 @@ import {
   AlignLeft,
   Type,
   ClipboardList,
-  CheckCheck
+  CheckCheck,
+  Image as ImageIcon,
+  Upload,
+  Link as LinkIcon
 } from 'lucide-react';
 import { entryService } from '../services/entryService';
 import { geminiService } from '../services/geminiService';
@@ -44,7 +47,7 @@ const quillModules = {
     [{ header: [1, 2, 3, false] }],
     ['bold', 'italic', 'underline', 'strike'],
     [{ list: 'ordered' }, { list: 'bullet' }, { indent: '-1' }, { indent: '+1' }],
-    ['code', 'code-block', 'blockquote', 'link'],
+    ['code', 'code-block', 'blockquote', 'link', 'image'],
     [{ color: [] }, { background: [] }],
     ['clean'],
   ],
@@ -119,6 +122,49 @@ const EntryEditorPage: React.FC = () => {
   const [suggLoading, setSuggLoading] = useState(false);
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [hasDraftRestore, setHasDraftRestore] = useState(false);
+
+  // Image Modal state & refs
+  const [showImageModal, setShowImageModal] = useState(false);
+  const [imageUrlInput, setImageUrlInput] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const insertImageToEditor = useCallback((src: string) => {
+    const editor = quillRef.current?.getEditor();
+    if (!editor) return;
+    const range = editor.getSelection(true) || { index: editor.getLength(), length: 0 };
+    editor.insertEmbed(range.index, 'image', src, 'user');
+    editor.setSelection(range.index + 1, 0);
+    toast('Image inserted into notes! 📸', 'success', 3000);
+  }, [toast]);
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      toast('Image file exceeds 5MB limit.', 'error');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === 'string') {
+        insertImageToEditor(reader.result);
+        setShowImageModal(false);
+      }
+    };
+    reader.readAsDataURL(file);
+    e.target.value = ''; // reset input
+  };
+
+  const handleUrlImageInsert = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!imageUrlInput.trim()) {
+      toast('Please enter a valid image URL.', 'error');
+      return;
+    }
+    insertImageToEditor(imageUrlInput.trim());
+    setImageUrlInput('');
+    setShowImageModal(false);
+  };
 
   const [formData, setFormData] = useState<Partial<LearningEntry>>({
     topic: '',
@@ -542,6 +588,24 @@ const EntryEditorPage: React.FC = () => {
                 <span>Paste Markdown</span>
               </button>
 
+              {/* Add Image button */}
+              <button
+                type="button"
+                onClick={() => setShowImageModal(true)}
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 text-[11px] font-bold hover:bg-emerald-50 dark:hover:bg-emerald-950/50 hover:border-emerald-300 dark:hover:border-emerald-700 hover:text-emerald-700 dark:hover:text-emerald-300 transition-colors"
+                title="Insert Image from computer or URL"
+              >
+                <ImageIcon className="w-3.5 h-3.5 text-emerald-500" />
+                <span>Add Image</span>
+              </button>
+              <input
+                type="file"
+                ref={fileInputRef}
+                accept="image/*"
+                onChange={handleFileUpload}
+                className="hidden"
+              />
+
               {/* Fullscreen toggle */}
               <button
                 type="button"
@@ -612,6 +676,9 @@ const EntryEditorPage: React.FC = () => {
             <span className="opacity-40">·</span>
             <span className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 font-mono border border-slate-200 dark:border-slate-700">Ctrl+K</span>
             <span>link</span>
+            <span className="opacity-40">·</span>
+            <span className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 font-mono border border-slate-200 dark:border-slate-700">![alt](url)</span>
+            <span>image</span>
           </p>
         </div>
 
@@ -804,6 +871,96 @@ const EntryEditorPage: React.FC = () => {
         </div>
 
       </div>
+
+      {/* ── Add Image Modal ───────────────────────────────────────────────────── */}
+      {showImageModal && (
+        <div className="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 p-6 max-w-md w-full space-y-6 animate-scale-up">
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-4">
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded-xl bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400">
+                  <ImageIcon className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-lg text-slate-900 dark:text-white">Insert Image</h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">Add visuals, diagrams, or screenshots to your log</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowImageModal(false)}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Option 1: Upload File */}
+            <div className="space-y-2">
+              <label className="block text-xs font-extrabold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                Option 1: Upload from Computer
+              </label>
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="w-full py-6 px-4 rounded-2xl border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-emerald-500 dark:hover:border-emerald-500 bg-slate-50 dark:bg-slate-850/50 hover:bg-emerald-50/50 dark:hover:bg-emerald-950/20 text-slate-600 dark:text-slate-300 transition-all flex flex-col items-center justify-center gap-2 group"
+              >
+                <div className="p-3 rounded-full bg-white dark:bg-slate-800 shadow-sm group-hover:scale-110 transition-transform">
+                  <Upload className="w-6 h-6 text-emerald-500" />
+                </div>
+                <span className="font-bold text-sm">Click to browse or drag & drop</span>
+                <span className="text-xs text-slate-400">Supports PNG, JPG, GIF, WEBP (Max 5MB)</span>
+              </button>
+            </div>
+
+            <div className="relative flex items-center justify-center">
+              <hr className="w-full border-slate-200 dark:border-slate-800" />
+              <span className="absolute px-3 bg-white dark:bg-slate-900 text-xs font-bold text-slate-400 uppercase">Or</span>
+            </div>
+
+            {/* Option 2: Image URL */}
+            <form onSubmit={handleUrlImageInsert} className="space-y-3">
+              <label className="block text-xs font-extrabold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                Option 2: Insert from Web URL
+              </label>
+              <div className="space-y-2">
+                <div className="relative">
+                  <LinkIcon className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="url"
+                    placeholder="https://example.com/diagram.png"
+                    value={imageUrlInput}
+                    onChange={(e) => setImageUrlInput(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-850 border border-slate-200 dark:border-slate-700 text-sm font-medium text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+                  />
+                </div>
+                {imageUrlInput && (
+                  <div className="mt-2 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 max-h-32 flex items-center justify-center p-2">
+                    <img src={imageUrlInput} alt="Preview" className="max-h-28 object-contain rounded-lg" onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }} />
+                  </div>
+                )}
+              </div>
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowImageModal(false)}
+                  className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold text-xs transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={!imageUrlInput.trim()}
+                  className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold text-xs shadow-md shadow-emerald-600/20 transition-all flex items-center gap-1.5"
+                >
+                  <ImageIcon className="w-3.5 h-3.5" />
+                  <span>Insert URL</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

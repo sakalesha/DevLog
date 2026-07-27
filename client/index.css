@@ -284,3 +284,37 @@
   color: #3b82f6 !important; /* Primary blue marker */
   font-weight: 700 !important;
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   RichContentViewer & Quill Editor — Image Styles
+   ═══════════════════════════════════════════════════════════════════════════ */
+.rich-content-viewer img,
+.ql-editor img {
+  max-width: 100% !important;
+  height: auto !important;
+  max-height: 580px;
+  object-fit: contain;
+  border-radius: 1rem !important;
+  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.15), 0 4px 10px -5px rgba(0, 0, 0, 0.05) !important;
+  border: 1px solid rgba(148, 163, 184, 0.25) !important;
+  margin: 2rem auto !important;
+  display: block !important;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+  background-color: rgba(255, 255, 255, 0.5);
+}
+
+.dark .rich-content-viewer img,
+.dark .ql-editor img {
+  border-color: rgba(71, 85, 105, 0.4) !important;
+  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5) !important;
+  background-color: rgba(15, 23, 42, 0.5);
+}
+
+.rich-content-viewer img:hover {
+  transform: scale(1.01);
+  box-shadow: 0 20px 35px -10px rgba(0, 0, 0, 0.2) !important;
+}
+
+.dark .rich-content-viewer img:hover {
+  box-shadow: 0 20px 35px -10px rgba(0, 0, 0, 0.6) !important;
+}
