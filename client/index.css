@@ -261,7 +261,6 @@
 
 .rich-content-viewer ol,
 .ql-editor ol {
-  list-style-type: decimal !important;
   padding-left: 1.75rem !important;
   margin: 1.25rem 0 !important;
 }
@@ -278,8 +277,8 @@
 /* 3. Quill exports ordered lists as <ol><li data-list="ordered"> — force decimal markers! */
 .rich-content-viewer li[data-list="ordered"],
 .ql-editor li[data-list="ordered"],
-.rich-content-viewer ol li,
-.ql-editor ol li {
+.rich-content-viewer ol li:not([data-list="bullet"]),
+.ql-editor ol li:not([data-list="bullet"]) {
   list-style-type: decimal !important;
   list-style-position: outside !important;
 }
