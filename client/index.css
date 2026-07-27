@@ -246,61 +246,193 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   Universal List & Bullet Point Restoration
-   Ensures both standard HTML (ul/ol) and Quill deltas (li[data-list]) 
-   render beautiful bullet points and numbers in editor and reader.
+   Universal List & Bullet Point System (10 Styles + No Duplicate Dots)
    ═══════════════════════════════════════════════════════════════════════════ */
 
-/* 1. Ensure ul and ol have proper indentation and margins */
+/* 1. Base containers: proper indentation */
 .rich-content-viewer ul,
-.ql-editor ul {
-  list-style-type: disc !important;
-  padding-left: 1.75rem !important;
-  margin: 1.25rem 0 !important;
-}
-
+.ql-editor ul,
 .rich-content-viewer ol,
 .ql-editor ol {
   padding-left: 1.75rem !important;
   margin: 1.25rem 0 !important;
+  counter-reset: list-counter !important;
 }
 
-/* 2. Quill exports bullets as <ol><li data-list="bullet"> — force disc markers! */
-.rich-content-viewer li[data-list="bullet"],
-.ql-editor li[data-list="bullet"],
-.rich-content-viewer ul li,
-.ql-editor ul li {
+/* For standard HTML lists (without data-list): use native markers */
+.rich-content-viewer ul:not(:has(li[data-list])),
+.ql-editor ul:not(:has(li[data-list])) {
   list-style-type: disc !important;
-  list-style-position: outside !important;
 }
-
-/* 3. Quill exports ordered lists as <ol><li data-list="ordered"> — force decimal markers! */
-.rich-content-viewer li[data-list="ordered"],
-.ql-editor li[data-list="ordered"],
-.rich-content-viewer ol li:not([data-list="bullet"]),
-.ql-editor ol li:not([data-list="bullet"]) {
+.rich-content-viewer ol:not(:has(li[data-list])),
+.ql-editor ol:not(:has(li[data-list])) {
   list-style-type: decimal !important;
-  list-style-position: outside !important;
+}
+.rich-content-viewer li:not([data-list]),
+.ql-editor li:not([data-list]) {
+  margin: 0.5rem 0 !important;
+  line-height: 1.85 !important;
+  padding-left: 0.25rem !important;
+}
+.rich-content-viewer li:not([data-list])::marker,
+.ql-editor li:not([data-list])::marker {
+  color: #3b82f6 !important;
+  font-weight: 700 !important;
 }
 
-/* 4. Hide Quill's redundant inline ql-ui span when using native list-style markers */
+/* 2. For ALL Quill list items (li[data-list]): remove native browser list markers to eliminate duplicate blue dots! */
+.rich-content-viewer li[data-list],
+.ql-editor li[data-list] {
+  list-style-type: none !important;
+  position: relative !important;
+  padding-left: 1.75rem !important;
+  margin: 0.5rem 0 !important;
+  line-height: 1.85 !important;
+}
+
+/* Remove duplicate native marker colors */
+.rich-content-viewer li[data-list]::marker,
+.ql-editor li[data-list]::marker {
+  display: none !important;
+  content: "" !important;
+}
+
+/* Hide redundant ql-ui spans when we use clean CSS pseudo-element markers */
 .rich-content-viewer li > .ql-ui,
 .ql-editor li > .ql-ui {
   display: none !important;
 }
 
-/* 5. Editorial spacing and custom marker styling for list items */
-.rich-content-viewer li,
-.ql-editor li {
-  margin: 0.5rem 0 !important;
-  line-height: 1.85 !important;
-  padding-left: 0.25rem !important;
+/* 3. Define clean custom markers for each bullet and numbering type using ::before */
+
+/* • Disc Bullet */
+.rich-content-viewer li[data-list="bullet"]::before,
+.ql-editor li[data-list="bullet"]::before {
+  content: "•" !important;
+  position: absolute !important;
+  left: 0.25rem !important;
+  top: 0 !important;
+  color: #3b82f6 !important; /* Primary blue */
+  font-weight: 800 !important;
+  font-size: 1.2em !important;
+  line-height: 1.5 !important;
 }
 
-.rich-content-viewer li::marker,
-.ql-editor li::marker {
-  color: #3b82f6 !important; /* Primary blue marker */
+/* ○ Circle Bullet */
+.rich-content-viewer li[data-list="circle"]::before,
+.ql-editor li[data-list="circle"]::before {
+  content: "○" !important;
+  position: absolute !important;
+  left: 0.25rem !important;
+  top: 0 !important;
+  color: #8b5cf6 !important; /* Violet */
+  font-weight: 800 !important;
+  font-size: 1.1em !important;
+  line-height: 1.6 !important;
+}
+
+/* ■ Square Bullet */
+.rich-content-viewer li[data-list="square"]::before,
+.ql-editor li[data-list="square"]::before {
+  content: "■" !important;
+  position: absolute !important;
+  left: 0.25rem !important;
+  top: 0 !important;
+  color: #10b981 !important; /* Emerald */
+  font-size: 0.85em !important;
+  line-height: 2.1 !important;
+}
+
+/* ➔ Arrow Bullet */
+.rich-content-viewer li[data-list="arrow"]::before,
+.ql-editor li[data-list="arrow"]::before {
+  content: "➔" !important;
+  position: absolute !important;
+  left: 0.25rem !important;
+  top: 0 !important;
+  color: #f59e0b !important; /* Amber */
+  font-weight: 800 !important;
+  font-size: 0.95em !important;
+  line-height: 1.8 !important;
+}
+
+/* ★ Star Bullet */
+.rich-content-viewer li[data-list="star"]::before,
+.ql-editor li[data-list="star"]::before {
+  content: "★" !important;
+  position: absolute !important;
+  left: 0.25rem !important;
+  top: 0 !important;
+  color: #ec4899 !important; /* Pink */
+  font-size: 1em !important;
+  line-height: 1.7 !important;
+}
+
+/* ── Ordered / Numbered List Types using CSS Counters ── */
+
+/* 1. Decimal Numbered */
+.rich-content-viewer li[data-list="ordered"]::before,
+.ql-editor li[data-list="ordered"]::before {
+  counter-increment: list-counter !important;
+  content: counter(list-counter, decimal) ". " !important;
+  position: absolute !important;
+  left: 0 !important;
+  top: 0 !important;
+  color: #3b82f6 !important;
   font-weight: 700 !important;
+  font-feature-settings: "tnum";
+}
+
+/* a. Lowercase Alpha */
+.rich-content-viewer li[data-list="alpha-lower"]::before,
+.ql-editor li[data-list="alpha-lower"]::before {
+  counter-increment: list-counter !important;
+  content: counter(list-counter, lower-alpha) ". " !important;
+  position: absolute !important;
+  left: 0 !important;
+  top: 0 !important;
+  color: #6366f1 !important;
+  font-weight: 700 !important;
+}
+
+/* A. Uppercase Alpha */
+.rich-content-viewer li[data-list="alpha-upper"]::before,
+.ql-editor li[data-list="alpha-upper"]::before {
+  counter-increment: list-counter !important;
+  content: counter(list-counter, upper-alpha) ". " !important;
+  position: absolute !important;
+  left: 0 !important;
+  top: 0 !important;
+  color: #06b6d4 !important;
+  font-weight: 700 !important;
+}
+
+/* i. Roman Numerals */
+.rich-content-viewer li[data-list="roman"]::before,
+.ql-editor li[data-list="roman"]::before {
+  counter-increment: list-counter !important;
+  content: counter(list-counter, lower-roman) ". " !important;
+  position: absolute !important;
+  left: -0.25rem !important;
+  top: 0 !important;
+  color: #f97316 !important;
+  font-weight: 700 !important;
+}
+
+/* ☑ Check / Task List items */
+.rich-content-viewer li[data-list="check"]::before,
+.ql-editor li[data-list="check"]::before {
+  content: "☑" !important;
+  position: absolute !important;
+  left: 0.15rem !important;
+  top: 0 !important;
+  color: #10b981 !important;
+  font-size: 1.1em !important;
+}
+.rich-content-viewer li[data-list="check"][data-checked="false"]::before,
+.ql-editor li[data-list="check"][data-checked="false"]::before {
+  content: "☐" !important;
+  color: #94a3b8 !important;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════

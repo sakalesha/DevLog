@@ -38,7 +38,14 @@ import {
   Columns,
   Rows,
   List,
-  ListOrdered
+  ListOrdered,
+  CheckSquare,
+  Circle,
+  Square,
+  ArrowRight,
+  Star,
+  Hash,
+  ListChecks
 } from 'lucide-react';
 import { entryService } from '../services/entryService';
 import { geminiService } from '../services/geminiService';
@@ -68,7 +75,7 @@ const quillModules = {
   toolbar: [
     [{ header: [1, 2, 3, false] }],
     ['bold', 'italic', 'underline', 'strike'],
-    [{ list: 'ordered' }, { list: 'bullet' }, { indent: '-1' }, { indent: '+1' }],
+    [{ list: 'ordered' }, { list: 'bullet' }, { list: 'check' }, { indent: '-1' }, { indent: '+1' }],
     ['code', 'code-block', 'blockquote', 'link', 'image'],
     [{ color: [] }, { background: [] }],
     ['clean'],
@@ -158,6 +165,9 @@ const EntryEditorPage: React.FC = () => {
   const [tableRows, setTableRows] = useState(3);
   const [tableCols, setTableCols] = useState(3);
 
+  // List Styles modal state
+  const [showListModal, setShowListModal] = useState(false);
+
   // Option 3: Slash Commands state
   const [showSlashMenu, setShowSlashMenu] = useState(false);
   const [slashQuery, setSlashQuery] = useState('');
@@ -215,6 +225,15 @@ const EntryEditorPage: React.FC = () => {
     setShowTableModal(false);
   }, [toast]);
 
+  const insertListStyle = useCallback((style: string, label: string) => {
+    const editor = quillRef.current?.getEditor();
+    if (!editor) return;
+    const range = editor.getSelection(true) || { index: editor.getLength(), length: 0 };
+    editor.formatLine(range.index, range.length || 1, 'list', style);
+    toast(`Formatted as ${label}! 🎨`, 'success', 2500);
+    setShowListModal(false);
+  }, [toast]);
+
   const getSlashCommands = useCallback((): SlashCommandItem[] => {
     const editor = quillRef.current?.getEditor();
     const formatLine = (format: string, val: any) => {
@@ -225,8 +244,16 @@ const EntryEditorPage: React.FC = () => {
       { id: 'h1', title: 'Heading 1', description: 'Large section title', alias: ['h1', 'heading'], icon: <Heading1 className="w-4 h-4 text-indigo-500" />, action: () => formatLine('header', 1) },
       { id: 'h2', title: 'Heading 2', description: 'Medium subsection title', alias: ['h2', 'sub'], icon: <Heading2 className="w-4 h-4 text-indigo-400" />, action: () => formatLine('header', 2) },
       { id: 'code', title: 'Code Block', description: 'Syntax highlighted code block', alias: ['code', 'js', 'ts', 'py'], icon: <Terminal className="w-4 h-4 text-amber-500" />, action: () => formatLine('code-block', true) },
-      { id: 'bullet', title: 'Bullet List', description: 'Create an unordered bulleted list', alias: ['bullet', 'list', 'ul'], icon: <List className="w-4 h-4 text-violet-500" />, action: () => formatLine('list', 'bullet') },
-      { id: 'ordered', title: 'Numbered List', description: 'Create an ordered numbered list', alias: ['ordered', 'num', 'ol'], icon: <ListOrdered className="w-4 h-4 text-blue-500" />, action: () => formatLine('list', 'ordered') },
+      { id: 'bullet', title: 'Disc Bullet (•)', description: 'Create a round bullet list (•)', alias: ['bullet', 'list', 'ul', 'disc'], icon: <List className="w-4 h-4 text-blue-500" />, action: () => formatLine('list', 'bullet') },
+      { id: 'circle', title: 'Circle Bullet (○)', description: 'Create an open hollow circle list', alias: ['circle', 'hollow'], icon: <Circle className="w-4 h-4 text-violet-500" />, action: () => formatLine('list', 'circle') },
+      { id: 'square', title: 'Square Bullet (■)', description: 'Create a square box bullet list', alias: ['square', 'box'], icon: <Square className="w-4 h-4 text-emerald-500" />, action: () => formatLine('list', 'square') },
+      { id: 'arrow', title: 'Arrow Bullet (➔)', description: 'Create an arrow bullet list', alias: ['arrow', 'pointer'], icon: <ArrowRight className="w-4 h-4 text-amber-500" />, action: () => formatLine('list', 'arrow') },
+      { id: 'star', title: 'Star Bullet (★)', description: 'Create a star bullet list', alias: ['star', 'special'], icon: <Star className="w-4 h-4 text-pink-500" />, action: () => formatLine('list', 'star') },
+      { id: 'check', title: 'Task / Check List (☑)', description: 'Create an interactive todo checkbox', alias: ['check', 'todo', 'task'], icon: <CheckSquare className="w-4 h-4 text-emerald-500" />, action: () => formatLine('list', 'check') },
+      { id: 'ordered', title: 'Numbered List (1, 2, 3)', description: 'Create a decimal sequence list', alias: ['ordered', 'num', 'ol', '123'], icon: <ListOrdered className="w-4 h-4 text-blue-500" />, action: () => formatLine('list', 'ordered') },
+      { id: 'alpha-lower', title: 'Lowercase Alpha (a, b, c)', description: 'Create an alphabetical list', alias: ['alpha', 'abc', 'lower'], icon: <Type className="w-4 h-4 text-indigo-500" />, action: () => formatLine('list', 'alpha-lower') },
+      { id: 'alpha-upper', title: 'Uppercase Alpha (A, B, C)', description: 'Create a capital alphabetical list', alias: ['alpha-upper', 'ABC', 'upper'], icon: <Type className="w-4 h-4 text-cyan-500" />, action: () => formatLine('list', 'alpha-upper') },
+      { id: 'roman', title: 'Roman Numerals (i, ii, iii)', description: 'Create a Roman numeral list', alias: ['roman', 'iii', 'numeral'], icon: <Hash className="w-4 h-4 text-orange-500" />, action: () => formatLine('list', 'roman') },
       { id: 'tip', title: 'Tip Callout', description: 'Best practice admonition box', alias: ['tip', 'best', 'hint'], icon: <TipIcon className="w-4 h-4 text-emerald-500" />, action: () => insertCallout('TIP') },
       { id: 'note', title: 'Note Callout', description: 'General note or context box', alias: ['note', 'info'], icon: <Info className="w-4 h-4 text-blue-500" />, action: () => insertCallout('NOTE') },
       { id: 'warning', title: 'Warning Callout', description: 'Warning or breaking change box', alias: ['warn', 'warning', 'important'], icon: <AlertTriangle className="w-4 h-4 text-amber-500" />, action: () => insertCallout('WARNING') },
@@ -744,32 +771,37 @@ const EntryEditorPage: React.FC = () => {
                 <span>Paste Markdown</span>
               </button>
 
-              {/* Insert Bullet List button */}
+              {/* Insert List Styles button */}
               <button
                 type="button"
-                onClick={() => {
-                  const editor = quillRef.current?.getEditor();
-                  if (editor) editor.format('list', 'bullet');
-                }}
+                onClick={() => setShowListModal(true)}
                 className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 text-[11px] font-bold hover:bg-violet-50 dark:hover:bg-violet-950/50 hover:border-violet-300 dark:hover:border-violet-700 hover:text-violet-700 dark:hover:text-violet-300 transition-colors"
-                title="Format selection as bullet points"
+                title="Choose from 10 different bullet and numbered list styles"
               >
-                <List className="w-3.5 h-3.5 text-violet-500" />
-                <span>Bullet List</span>
+                <ListChecks className="w-3.5 h-3.5 text-violet-500" />
+                <span>List Styles (10)</span>
               </button>
 
-              {/* Insert Numbered List button */}
+              {/* Quick Bullet List button */}
               <button
                 type="button"
-                onClick={() => {
-                  const editor = quillRef.current?.getEditor();
-                  if (editor) editor.format('list', 'ordered');
-                }}
-                className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 text-[11px] font-bold hover:bg-blue-50 dark:hover:bg-blue-950/50 hover:border-blue-300 dark:hover:border-blue-700 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
-                title="Format selection as numbered list"
+                onClick={() => insertListStyle('bullet', 'Disc Bullet List')}
+                className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 text-[11px] font-bold hover:bg-violet-50 dark:hover:bg-violet-950/50 hover:border-violet-300 dark:hover:border-violet-700 hover:text-violet-700 dark:hover:text-violet-300 transition-colors"
+                title="Quick disc bullet list (•)"
+              >
+                <List className="w-3.5 h-3.5 text-violet-500" />
+                <span>• Bullet</span>
+              </button>
+
+              {/* Quick Numbered List button */}
+              <button
+                type="button"
+                onClick={() => insertListStyle('ordered', 'Numbered List')}
+                className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 text-[11px] font-bold hover:bg-blue-50 dark:hover:bg-blue-950/50 hover:border-blue-300 dark:hover:border-blue-700 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
+                title="Quick decimal numbered list (1, 2, 3)"
               >
                 <ListOrdered className="w-3.5 h-3.5 text-blue-500" />
-                <span>Numbered List</span>
+                <span>1. Numbered</span>
               </button>
 
               {/* Add Image button */}
@@ -1423,6 +1455,178 @@ const EntryEditorPage: React.FC = () => {
               >
                 <TableIcon className="w-3.5 h-3.5" />
                 <span>Insert {tableRows}x{tableCols} Table</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── List Styles Picker Modal (10 Styles) ───────────────────────────── */}
+      {showListModal && (
+        <div className="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 p-6 max-w-lg w-full space-y-5 animate-scale-up">
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-4">
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded-xl bg-violet-100 dark:bg-violet-950/60 text-violet-600 dark:text-violet-400">
+                  <ListChecks className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-lg text-slate-900 dark:text-white">Choose List Style</h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">Select from 10 different bullet point and numbering types</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowListModal(false)}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-1">
+              <div>
+                <h4 className="text-xs font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-2.5">
+                  Unordered Bullets & Checkboxes
+                </h4>
+                <div className="grid grid-cols-2 gap-2.5">
+                  <button
+                    type="button"
+                    onClick={() => insertListStyle('bullet', 'Disc Bullet List')}
+                    className="flex items-center gap-3 p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/80 hover:bg-blue-50 dark:hover:bg-blue-950/40 hover:border-blue-300 dark:hover:border-blue-700 text-left transition-all group"
+                  >
+                    <span className="w-8 h-8 rounded-xl bg-blue-500/10 text-blue-500 flex items-center justify-center font-bold text-lg group-hover:scale-110 transition-transform">•</span>
+                    <div>
+                      <div className="font-bold text-xs text-slate-800 dark:text-slate-200">Disc Bullet</div>
+                      <div className="text-[10px] text-slate-500 dark:text-slate-400">Standard round bullet</div>
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => insertListStyle('circle', 'Circle Bullet List')}
+                    className="flex items-center gap-3 p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/80 hover:bg-violet-50 dark:hover:bg-violet-950/40 hover:border-violet-300 dark:hover:border-violet-700 text-left transition-all group"
+                  >
+                    <span className="w-8 h-8 rounded-xl bg-violet-500/10 text-violet-500 flex items-center justify-center font-bold text-base group-hover:scale-110 transition-transform">○</span>
+                    <div>
+                      <div className="font-bold text-xs text-slate-800 dark:text-slate-200">Circle Bullet</div>
+                      <div className="text-[10px] text-slate-500 dark:text-slate-400">Open hollow bullet</div>
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => insertListStyle('square', 'Square Bullet List')}
+                    className="flex items-center gap-3 p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/80 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 hover:border-emerald-300 dark:hover:border-emerald-700 text-left transition-all group"
+                  >
+                    <span className="w-8 h-8 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center font-bold text-sm group-hover:scale-110 transition-transform">■</span>
+                    <div>
+                      <div className="font-bold text-xs text-slate-800 dark:text-slate-200">Square Bullet</div>
+                      <div className="text-[10px] text-slate-500 dark:text-slate-400">Solid square box</div>
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => insertListStyle('arrow', 'Arrow Bullet List')}
+                    className="flex items-center gap-3 p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/80 hover:bg-amber-50 dark:hover:bg-amber-950/40 hover:border-amber-300 dark:hover:border-amber-700 text-left transition-all group"
+                  >
+                    <span className="w-8 h-8 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center font-bold text-sm group-hover:scale-110 transition-transform">➔</span>
+                    <div>
+                      <div className="font-bold text-xs text-slate-800 dark:text-slate-200">Arrow Bullet</div>
+                      <div className="text-[10px] text-slate-500 dark:text-slate-400">Directional pointer</div>
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => insertListStyle('star', 'Star Bullet List')}
+                    className="flex items-center gap-3 p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/80 hover:bg-pink-50 dark:hover:bg-pink-950/40 hover:border-pink-300 dark:hover:border-pink-700 text-left transition-all group"
+                  >
+                    <span className="w-8 h-8 rounded-xl bg-pink-500/10 text-pink-500 flex items-center justify-center font-bold text-sm group-hover:scale-110 transition-transform">★</span>
+                    <div>
+                      <div className="font-bold text-xs text-slate-800 dark:text-slate-200">Star Bullet</div>
+                      <div className="text-[10px] text-slate-500 dark:text-slate-400">Highlight star point</div>
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => insertListStyle('check', 'Task Check List')}
+                    className="flex items-center gap-3 p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/80 hover:bg-teal-50 dark:hover:bg-teal-950/40 hover:border-teal-300 dark:hover:border-teal-700 text-left transition-all group"
+                  >
+                    <span className="w-8 h-8 rounded-xl bg-teal-500/10 text-teal-500 flex items-center justify-center font-bold text-sm group-hover:scale-110 transition-transform">☑</span>
+                    <div>
+                      <div className="font-bold text-xs text-slate-800 dark:text-slate-200">Task Checklist</div>
+                      <div className="text-[10px] text-slate-500 dark:text-slate-400">Interactive todo items</div>
+                    </div>
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <h4 className="text-xs font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-2.5">
+                  Ordered & Numbered Sequences
+                </h4>
+                <div className="grid grid-cols-2 gap-2.5">
+                  <button
+                    type="button"
+                    onClick={() => insertListStyle('ordered', 'Decimal Numbered List')}
+                    className="flex items-center gap-3 p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/80 hover:bg-blue-50 dark:hover:bg-blue-950/40 hover:border-blue-300 dark:hover:border-blue-700 text-left transition-all group"
+                  >
+                    <span className="w-8 h-8 rounded-xl bg-blue-500/10 text-blue-500 flex items-center justify-center font-bold text-xs font-mono group-hover:scale-110 transition-transform">1.</span>
+                    <div>
+                      <div className="font-bold text-xs text-slate-800 dark:text-slate-200">Decimal (1, 2, 3)</div>
+                      <div className="text-[10px] text-slate-500 dark:text-slate-400">Standard numeric order</div>
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => insertListStyle('alpha-lower', 'Lowercase Alpha List')}
+                    className="flex items-center gap-3 p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/80 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 hover:border-indigo-300 dark:hover:border-indigo-700 text-left transition-all group"
+                  >
+                    <span className="w-8 h-8 rounded-xl bg-indigo-500/10 text-indigo-500 flex items-center justify-center font-bold text-xs font-mono group-hover:scale-110 transition-transform">a.</span>
+                    <div>
+                      <div className="font-bold text-xs text-slate-800 dark:text-slate-200">Lower Alpha (a, b, c)</div>
+                      <div className="text-[10px] text-slate-500 dark:text-slate-400">Alphabetical sequence</div>
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => insertListStyle('alpha-upper', 'Uppercase Alpha List')}
+                    className="flex items-center gap-3 p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/80 hover:bg-cyan-50 dark:hover:bg-cyan-950/40 hover:border-cyan-300 dark:hover:border-cyan-700 text-left transition-all group"
+                  >
+                    <span className="w-8 h-8 rounded-xl bg-cyan-500/10 text-cyan-500 flex items-center justify-center font-bold text-xs font-mono group-hover:scale-110 transition-transform">A.</span>
+                    <div>
+                      <div className="font-bold text-xs text-slate-800 dark:text-slate-200">Upper Alpha (A, B, C)</div>
+                      <div className="text-[10px] text-slate-500 dark:text-slate-400">Capital letters</div>
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => insertListStyle('roman', 'Roman Numerals List')}
+                    className="flex items-center gap-3 p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/80 hover:bg-orange-50 dark:hover:bg-orange-950/40 hover:border-orange-300 dark:hover:border-orange-700 text-left transition-all group"
+                  >
+                    <span className="w-8 h-8 rounded-xl bg-orange-500/10 text-orange-500 flex items-center justify-center font-bold text-xs font-mono group-hover:scale-110 transition-transform">i.</span>
+                    <div>
+                      <div className="font-bold text-xs text-slate-800 dark:text-slate-200">Roman (i, ii, iii)</div>
+                      <div className="text-[10px] text-slate-500 dark:text-slate-400">Classical numbering</div>
+                    </div>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end pt-2 border-t border-slate-200 dark:border-slate-800">
+              <button
+                type="button"
+                onClick={() => setShowListModal(false)}
+                className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold text-xs transition-colors"
+              >
+                Close
               </button>
             </div>
           </div>
