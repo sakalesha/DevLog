@@ -73,11 +73,20 @@ function assignHeadingIds(container: HTMLElement) {
 
 /** Highlight a single <pre> element using highlight.js auto-detection */
 function highlightBlock(pre: HTMLElement) {
-  const codeEl = pre.querySelector('code') || pre;
-
   // Already processed
   if (pre.dataset.highlighted) return;
   pre.dataset.highlighted = 'true';
+
+  // Quill outputs <pre class="ql-syntax">code...</pre> without a nested <code> tag.
+  // Ensure <pre> has an inner <code> element so topbar and gutter can be inserted alongside it without DOM hierarchy errors.
+  let codeEl = pre.querySelector('code');
+  if (!codeEl) {
+    const innerContent = pre.innerHTML;
+    codeEl = document.createElement('code');
+    codeEl.innerHTML = innerContent;
+    pre.innerHTML = '';
+    pre.appendChild(codeEl);
+  }
 
   const rawCode = codeEl.textContent || '';
 
@@ -94,6 +103,10 @@ function highlightBlock(pre: HTMLElement) {
   pre.style.position = 'relative';
   pre.style.paddingTop = '2.5rem';   // room for the top bar
   pre.style.paddingBottom = '1rem';
+
+  // ── Apply highlighted HTML to codeEl FIRST ────────────────────────────────
+  codeEl.innerHTML = result.value;
+  codeEl.classList.add('hljs');
 
   // ── Top bar: language label + copy button ─────────────────────────────────
   if (!pre.querySelector('.hljs-topbar')) {
@@ -130,10 +143,6 @@ function highlightBlock(pre: HTMLElement) {
 
     pre.insertBefore(topbar, pre.firstChild);
   }
-
-  // ── Apply highlighted HTML ────────────────────────────────────────────────
-  codeEl.innerHTML = result.value;
-  codeEl.classList.add('hljs');
 
   // ── Line numbers ─────────────────────────────────────────────────────────
   if (!pre.querySelector('.hljs-line-numbers')) {
