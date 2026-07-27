@@ -202,6 +202,22 @@
   white-space: pre-wrap !important;
   word-break: break-word;
 }
+
+/* ── Ensure empty line gaps (<p><br></p> or <br>) always maintain full line height and never collapse ── */
+.rich-content-viewer p:has(br:only-child),
+.rich-content-viewer p:empty,
+.ql-editor p:has(br:only-child),
+.ql-editor p:empty {
+  min-height: 1.85em !important;
+  margin-top: 1rem !important;
+  margin-bottom: 1rem !important;
+}
+.rich-content-viewer br,
+.ql-editor br {
+  display: inline-block !important;
+  content: ' ' !important;
+}
+
 .quill-fullscreen .ql-editor {
   min-height: calc(100vh - 180px) !important;
 }

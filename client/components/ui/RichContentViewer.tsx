@@ -35,12 +35,12 @@ function normalizeContent(raw: string): string {
   if (hasUnparsedMarkdown) {
     // Clean up Quill's <p> wrapping if present so marked can parse markdown blocks cleanly
     const cleaned = raw
-      .replace(/<p>\s*(#{1,6}\s+.+?)\s*<\/p>/gi, '$1\n\n')
-      .replace(/<p>\s*([-*+]\s+.+?)\s*<\/p>/gi, '$1\n')
-      .replace(/<p>\s*(\d+\.\s+.+?)\s*<\/p>/gi, '$1\n')
-      .replace(/<p>\s*(>\s+.+?)\s*<\/p>/gi, '$1\n\n')
-      .replace(/<p>\s*(```[\s\S]*?```)\s*<\/p>/gi, '$1\n\n')
-      .replace(/<p>\s*(---.*?)\s*<\/p>/gi, '$1\n\n');
+      .replace(/<p>\s*(#{1,6}\s+.+?)\s*<\/p>/gi, '\n\n$1\n\n')
+      .replace(/<p>\s*([-*+]\s+.+?)\s*<\/p>/gi, '\n\n$1\n\n')
+      .replace(/<p>\s*(\d+\.\s+.+?)\s*<\/p>/gi, '\n\n$1\n\n')
+      .replace(/<p>\s*(>\s+.+?)\s*<\/p>/gi, '\n\n$1\n\n')
+      .replace(/<p>\s*(```[\s\S]*?```)\s*<\/p>/gi, '\n\n$1\n\n')
+      .replace(/<p>\s*(---.*?)\s*<\/p>/gi, '\n\n$1\n\n');
 
     marked.setOptions({ gfm: true, breaks: true });
     let parsed = marked.parse(cleaned) as string;
