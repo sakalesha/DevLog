@@ -318,3 +318,86 @@
 .dark .rich-content-viewer img:hover {
   box-shadow: 0 20px 35px -10px rgba(0, 0, 0, 0.6) !important;
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   RichContentViewer & Quill Editor — Table Styles (Option 7)
+   ═══════════════════════════════════════════════════════════════════════════ */
+.rich-content-viewer table,
+.ql-editor table {
+  width: 100% !important;
+  border-collapse: collapse !important;
+  margin: 1.75rem 0 !important;
+  font-size: 0.9rem !important;
+  border-radius: 0.75rem !important;
+  overflow: hidden !important;
+  box-shadow: 0 4px 15px -3px rgba(0, 0, 0, 0.08), 0 2px 6px -2px rgba(0, 0, 0, 0.04) !important;
+  border: 1px solid #e2e8f0 !important;
+}
+
+.dark .rich-content-viewer table,
+.dark .ql-editor table {
+  border-color: #334155 !important;
+  box-shadow: 0 4px 15px -3px rgba(0, 0, 0, 0.4) !important;
+}
+
+.rich-content-viewer th,
+.ql-editor th {
+  background-color: #f8fafc !important;
+  color: #0f172a !important;
+  font-weight: 800 !important;
+  text-align: left !important;
+  padding: 0.85rem 1rem !important;
+  border: 1px solid #e2e8f0 !important;
+  font-family: inherit;
+}
+
+.dark .rich-content-viewer th,
+.dark .ql-editor th {
+  background-color: #1e293b !important;
+  color: #f8fafc !important;
+  border-color: #334155 !important;
+}
+
+.rich-content-viewer td,
+.ql-editor td {
+  padding: 0.85rem 1rem !important;
+  border: 1px solid #e2e8f0 !important;
+  color: #334155 !important;
+  line-height: 1.6 !important;
+}
+
+.dark .rich-content-viewer td,
+.dark .ql-editor td {
+  border-color: #334155 !important;
+  color: #cbd5e1 !important;
+  background-color: rgba(15, 23, 42, 0.4) !important;
+}
+
+.rich-content-viewer tr:nth-child(even) td,
+.ql-editor tr:nth-child(even) td {
+  background-color: #f8fafc / 0.5 !important;
+}
+
+.dark .rich-content-viewer tr:nth-child(even) td,
+.dark .ql-editor tr:nth-child(even) td {
+  background-color: #1e293b / 0.3 !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   RichContentViewer & Quill Editor — Callout Styles (Option 5)
+   ═══════════════════════════════════════════════════════════════════════════ */
+.ql-editor blockquote,
+.rich-content-viewer blockquote {
+  position: relative !important;
+  margin: 1.5rem 0 !important;
+  padding: 1rem 1.25rem !important;
+  border-radius: 0.75rem !important;
+  font-style: normal !important;
+  line-height: 1.7 !important;
+  box-shadow: 0 2px 10px -2px rgba(0, 0, 0, 0.05) !important;
+}
+
+.dark .ql-editor blockquote,
+.dark .rich-content-viewer blockquote {
+  box-shadow: 0 2px 10px -2px rgba(0, 0, 0, 0.3) !important;
+}
